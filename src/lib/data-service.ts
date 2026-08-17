@@ -4,6 +4,7 @@ import type {
   WeatherFile,
   SimilarFile,
   MetaFile,
+  InstalledCapacityFile,
 } from '@/types/adjust'
 
 const cache: Record<string, unknown> = {}
@@ -25,6 +26,8 @@ export const loadForecast = (model: string) =>
   loadJson<ForecastFile>(`data/forecast_${model}.json`)
 export const loadIntervals = () =>
   loadJson<Record<string, Record<string, unknown>[]>>('data/intervals.json')
+export const loadInstalledCapacity = () =>
+  loadJson<InstalledCapacityFile>('data/installed_capacity.json')
 
 // ---- 操作记录持久化（localStorage） ----
 import type { SavedSession } from '@/types/adjust'

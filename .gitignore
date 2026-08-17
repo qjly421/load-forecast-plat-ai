@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 团队内部记录，不进公开仓库
+worklogs/

@@ -2,15 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
   ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ReferenceLine, ResponsiveContainer, Cell,
+  ReferenceLine, ResponsiveContainer, Cell, PieChart, Pie,
 } from 'recharts'
 import {
   LayoutDashboard, Target, ShieldCheck, Thermometer, Zap, ArrowRight,
-  TrendingDown, Database, Loader2, Flame, CloudRainWind,
+  TrendingDown, Database, Loader2, Flame, CloudRainWind, Power, Waves,
 } from 'lucide-react'
-import { loadMeta, loadWeather, loadForecast, loadIntervals } from '@/lib/data-service'
+import { loadMeta, loadWeather, loadForecast, loadIntervals, loadInstalledCapacity } from '@/lib/data-service'
 import { mape } from '@/lib/adjust-engine'
-import type { ForecastFile, MetaFile, WeatherFile } from '@/types/adjust'
+import { analyzePeriodicity } from '@/lib/spectral'
+import type { ForecastFile, MetaFile, WeatherFile, InstalledCapacityFile } from '@/types/adjust'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -23,15 +24,16 @@ export default function Home() {
   const [fcLgb, setFcLgb] = useState<ForecastFile | null>(null)
   const [fcNn, setFcNn] = useState<ForecastFile | null>(null)
   const [intervals, setIntervals] = useState<Intervals | null>(null)
+  const [installed, setInstalled] = useState<InstalledCapacityFile | null>(null)
 
   useEffect(() => {
-    Promise.all([loadMeta(), loadWeather(), loadForecast('lgb'), loadForecast('nn'), loadIntervals()])
-      .then(([m, w, l, n, iv]) => {
-        setMeta(m); setWeather(w); setFcLgb(l); setFcNn(n); setIntervals(iv)
+    Promise.all([loadMeta(), loadWeather(), loadForecast('lgb'), loadForecast('nn'), loadIntervals(), loadInstalledCapacity()])
+      .then(([m, w, l, n, iv, ic]) => {
+        setMeta(m); setWeather(w); setFcLgb(l); setFcNn(n); setIntervals(iv); setInstalled(ic)
       })
   }, [])
 
-  const ready = meta && weather && fcLgb && fcNn && intervals
+  const ready = meta && weather && fcLgb && fcNn && intervals && installed
 
   // ---- 全月统计 ----
   const stats = useMemo(() => {
@@ -141,6 +143,58 @@ export default function Home() {
     const hotDay = daily.reduce((a, b) => (b.tempMax > a.tempMax ? b : a))
     return { peakDay, hotDay }
   }, [daily])
+
+  // ---- 电源装机结构 ----
+  const capacityData = useMemo(() => {
+    if (!installed) return []
+    return installed.categories.map((c) => ({
+      name: c.name,
+      value: c.capacity,
+      valueType: c.valueType,
+    }))
+  }, [installed])
+
+  // ---- 负荷周期性（自相关法，30 天 actual 序列） ----
+  const spectralPeaks = useMemo(() => {
+    if (!ready) return null
+    const series: number[] = []
+    for (const d of meta.targetDays) {
+      const act = fcLgb[d]?.['1']?.actual
+      if (act && act.length === 96) series.push(...act)
+    }
+    if (series.length < 96 * 2) return null
+    return analyzePeriodicity(series, 0.25)
+  }, [ready, meta, fcLgb])
+
+  const spectralChart = useMemo(() => {
+    if (!spectralPeaks) return []
+    return spectralPeaks.map((p) => ({
+      name: periodName(p.periodHours),
+      hours: Math.round(p.periodHours),
+      corr: Math.round(p.correlation * 1000) / 1000,
+    }))
+  }, [spectralPeaks])
+
+  const spectralConclusion = useMemo(() => {
+    if (!spectralPeaks) return ''
+    const p24 = spectralPeaks.find((p) => Math.abs(p.periodHours - 24) < 1)
+    const p12 = spectralPeaks.find((p) => Math.abs(p.periodHours - 12) < 1)
+    const p168 = spectralPeaks.find((p) => Math.abs(p.periodHours - 168) < 2)
+    const strong = (c: number) => c >= 0.3
+    if (!p24) return '未检测到显著周期。'
+    let s = `负荷呈现明显的 24 小时日周期（r≈${p24.correlation.toFixed(2)}），为绝对主导分量，反映日内单峰结构（午后高峰、夜间低谷）。`
+    if (p12 && strong(p12.correlation)) {
+      s += ` 叠加 12 小时半日双峰（r≈${p12.correlation.toFixed(2)}）。`
+    } else if (p12) {
+      s += ` 12 小时半日分量较弱（r≈${p12.correlation.toFixed(2)}），说明日内无显著早/晚双峰。`
+    }
+    if (p168 && strong(p168.correlation)) {
+      s += ` 周周期明显（r≈${p168.correlation.toFixed(2)}）。`
+    } else if (p168) {
+      s += ` 168 小时周周期较弱（r≈${p168.correlation.toFixed(2)}），该 30 天窗口内周内差异不显著。`
+    }
+    return s
+  }, [spectralPeaks])
 
   if (!ready) {
     return (
@@ -345,6 +399,89 @@ export default function Home() {
           </div>
         </div>
 
+        {/* 电源装机结构 + 负荷周期性分析 */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div className="card-glow rounded-xl p-4">
+            <div className="mb-1 flex items-center justify-between">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+                <Power className="h-3.5 w-3.5 text-amber-400" />山东电源装机结构
+              </h3>
+              <span className="text-[10px] text-muted-foreground">{installed.year} 年底 · 单位 万千瓦</span>
+            </div>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
+              <div style={{ height: 220, width: 220, flexShrink: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={capacityData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                      innerRadius={52} outerRadius={85} paddingAngle={1} stroke="none">
+                      {capacityData.map((_, i) => (
+                        <Cell key={i} fill={CAP_COLORS[i % CAP_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: number, name: string) => {
+                        const pct = installed ? ((v / installed.total) * 100).toFixed(1) : ''
+                        return [`${v.toLocaleString()} 万千瓦（${pct}%）`, name]
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-full flex-1 space-y-1.5">
+                {capacityData.map((c, i) => (
+                  <div key={c.name} className="flex items-center justify-between text-[11px]">
+                    <span className="flex items-center gap-1.5 text-foreground/90">
+                      <span className="h-2 w-2 rounded-full" style={{ background: CAP_COLORS[i % CAP_COLORS.length] }} />
+                      {c.name}
+                      {c.valueType === 'derived' && (
+                        <span className="rounded bg-muted px-1 text-[9px] text-muted-foreground">推算</span>
+                      )}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {c.value.toLocaleString()} 万千瓦 · {((c.value / installed.total) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+              总装机约 {installed.total.toLocaleString()} 万千瓦（≈{(installed.total / 10000).toFixed(2)} 亿千瓦）·
+              新能源占比 48.7% 已超煤电。来源：<a className="text-primary/80 underline-offset-2 hover:underline"
+                href={installed.sources[0].url} target="_blank" rel="noreferrer">山东省能源局（2024）</a>
+              、<a className="text-primary/80 underline-offset-2 hover:underline"
+                href={installed.sources[1].url} target="_blank" rel="noreferrer">国家能源局分类型（2024）</a>
+              ，推算项见 tooltip。
+            </p>
+          </div>
+
+          <div className="card-glow rounded-xl p-4">
+            <div className="mb-1 flex items-center justify-between">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+                <Waves className="h-3.5 w-3.5 text-cyan-400" />负荷周期性分析
+              </h3>
+              <span className="text-[10px] text-muted-foreground">自相关法 · 30 天 actual（96 点/日）</span>
+            </div>
+            <div style={{ height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={spectralChart} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 33% 15%)" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(215 20% 58%)' }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[0, 1]} tick={{ fontSize: 10, fill: 'hsl(215 20% 58%)' }} tickLine={false} axisLine={false} width={32} />
+                  <Tooltip contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                    formatter={(v: number) => [`r = ${v}`, '自相关系数']} />
+                  <Bar dataKey="corr" radius={[4, 4, 0, 0]} barSize={44}>
+                    {spectralChart.map((r, i) => (
+                      <Cell key={i} fill={r.hours === 24 ? '#22d3ee' : '#38bdf8'} />
+                    ))}
+                  </Bar>
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{spectralConclusion}</p>
+          </div>
+        </div>
+
         {/* 口径说明 */}
         <div className="rounded-xl border border-border bg-card/60 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
           <Thermometer className="mr-1 inline h-3.5 w-3.5 text-orange-400" />
@@ -355,6 +492,18 @@ export default function Home() {
       </main>
     </div>
   )
+}
+
+// 装机结构饼图配色（按 categories 顺序：光伏/风电/煤电/气电/水电/核电/其他）
+const CAP_COLORS = ['#fbbf24', '#38bdf8', '#94a3b8', '#fb923c', '#60a5fa', '#a78bfa', '#64748b']
+
+/** 周期时长 -> 中文标签 */
+function periodName(h: number): string {
+  if (Math.abs(h - 168) < 2) return '168 小时（周）'
+  if (Math.abs(h - 24) < 1) return '24 小时（日）'
+  if (Math.abs(h - 12) < 1) return '12 小时（半日）'
+  if (Math.abs(h - 8) < 1) return '8 小时'
+  return `${Math.round(h)} 小时`
 }
 
 function Kpi({ icon, label, value, unit, sub, tone = 'normal' }: {

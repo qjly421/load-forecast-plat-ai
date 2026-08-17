@@ -94,3 +94,31 @@ export interface SavedSession {
   ops: AdjustOp[]
   savedAt: number
 }
+
+// ---- 电源装机结构 ----
+export interface InstalledCapacityCategory {
+  id: string
+  name: string
+  capacity: number // 万千瓦
+  valueType: 'official' | 'derived' // official=官方直接披露；derived=据官方口径推算
+  source: string // 该分类数据来源说明
+}
+
+export interface InstalledCapacitySource {
+  name: string // 来源机构
+  title: string
+  url: string
+  year: number
+}
+
+export interface InstalledCapacityFile {
+  year: number
+  unit: string
+  region: string
+  total: number // 万千瓦
+  totalType: 'official' | 'derived'
+  totalNote: string
+  categories: InstalledCapacityCategory[]
+  sources: InstalledCapacitySource[]
+  note: string
+}
