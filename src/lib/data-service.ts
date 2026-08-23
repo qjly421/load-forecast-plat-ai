@@ -1,10 +1,12 @@
 // 数据服务：按需 fetch 预处理 JSON，带内存缓存
+import type { FeatureCollection } from 'geojson'
 import type {
   ForecastFile,
   WeatherFile,
   SimilarFile,
   MetaFile,
   InstalledCapacityFile,
+  WindSolarSitesFile,
 } from '@/types/adjust'
 
 const cache: Record<string, unknown> = {}
@@ -28,6 +30,10 @@ export const loadIntervals = () =>
   loadJson<Record<string, Record<string, unknown>[]>>('data/intervals.json')
 export const loadInstalledCapacity = () =>
   loadJson<InstalledCapacityFile>('data/installed_capacity.json')
+export const loadWindSolarSites = () =>
+  loadJson<WindSolarSitesFile>('data/wind_solar_sites.json')
+export const loadShandongGeo = () =>
+  loadJson<FeatureCollection>('data/shape/shandong_geo.json')
 
 // ---- 操作记录持久化（localStorage） ----
 import type { SavedSession } from '@/types/adjust'

@@ -11,6 +11,7 @@ import {
 import { loadMeta, loadWeather, loadForecast, loadIntervals, loadInstalledCapacity } from '@/lib/data-service'
 import { mape } from '@/lib/adjust-engine'
 import { analyzePeriodicity } from '@/lib/spectral'
+import EnergyMap from '@/sections/home/EnergyMap'
 import type { ForecastFile, MetaFile, WeatherFile, InstalledCapacityFile } from '@/types/adjust'
 import { Badge } from '@/components/ui/badge'
 import { InfoTip } from '@/components/ui/info-tip'
@@ -500,6 +501,9 @@ export default function Home() {
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{spectralConclusion}</p>
           </div>
         </div>
+
+        {/* 新能源电力地理 · 山东电源结构背景 */}
+        <EnergyMap />
 
         {/* 数据与口径说明（可折叠） */}
         <CollapsibleInfo>

@@ -122,3 +122,36 @@ export interface InstalledCapacityFile {
   sources: InstalledCapacitySource[]
   note: string
 }
+
+// ---- 新能源电力地理（地图） ----
+export type EnergySiteType = 'wind' | 'solar'
+
+export interface WindSolarSite {
+  name: string
+  type: EnergySiteType // wind=风电；solar=光伏
+  subtype: string // offshore/onshore（风电）、utility/solar（光伏）
+  capacityMw: number // 装机容量（MW）
+  lat: number
+  lng: number
+  city: string
+  status: string // operating 等
+  coordAccuracy: string // approximate=区域近似；exact=场址中心
+  year: number | null // 投产年份；null=旧 GPPD 点（无投产年份）
+  sourceName: string
+  sourceUrl: string
+  sourceYear: number | null // 数据采集年份
+}
+
+export interface WindSolarSiteSource {
+  name: string // 来源机构
+  url: string
+  year: number | null // 数据口径年份；null=旧口径
+  note: string
+}
+
+export interface WindSolarSitesFile {
+  sources: WindSolarSiteSource[]
+  note: string
+  generatedAt: string
+  sites: WindSolarSite[]
+}
