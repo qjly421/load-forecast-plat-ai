@@ -70,21 +70,37 @@ export default function EnergyMap() {
     }
   }, [])
 
-  // 底图（山东 16 地级市轮廓）加载后绘制，并自适应视野
+  // 底图（山东 16 地级市轮廓）加载后绘制，加城市名，并自适应视野（撑满、少留白）
   useEffect(() => {
     const map = mapInstance.current
     if (!map || !geo) return
+    // 山东面：深蓝实底（不透出白）+ 青色亮边界，更高级
     const layer = L.geoJSON(geo, {
       style: () => ({
-        color: 'hsl(187 92% 55% / 0.75)', // 边界线：青色
-        weight: 1.3,
-        fillColor: 'hsl(217 33% 18%)',
-        fillOpacity: 0.45,
+        color: 'hsl(187 90% 52% / 0.85)',
+        weight: 1.4,
+        fillColor: 'hsl(208 44% 13%)',
+        fillOpacity: 0.78,
       }),
     })
     layer.addTo(map)
+    // 地级市名标签（淡色小字，专业地图感；放在边界之上）
+    L.layerGroup(
+      geo.features.map((f) => {
+        const name = (f.properties as { name?: string })?.name
+        const c = (f.properties as { center?: [number, number] })?.center // [lng, lat]
+        if (!name || !c) return L.tooltip()
+        return L.tooltip({
+          permanent: true,
+          direction: 'center',
+          className: 'energy-city-label',
+        })
+          .setLatLng([c[1], c[0]])
+          .setContent(name)
+      }),
+    ).addTo(map)
     const bounds = layer.getBounds()
-    if (bounds.isValid()) map.fitBounds(bounds, { padding: [14, 14] })
+    if (bounds.isValid()) map.fitBounds(bounds, { paddingTopLeft: [16, 16], paddingBottomRight: [16, 16] })
   }, [geo])
 
   // 场站 marker（随筛选变化重建）
@@ -159,7 +175,7 @@ export default function EnergyMap() {
 
       {/* 地图 + 图例 */}
       <div className="relative">
-        <div ref={mapRef} className="h-[400px] w-full overflow-hidden rounded-lg border border-border/70" />
+        <div ref={mapRef} className="h-[560px] w-full overflow-hidden rounded-xl border border-border/60" />
         <div className="pointer-events-none absolute left-2 top-2 z-[5000] space-y-1 rounded-lg border border-border/70 bg-background/85 px-2.5 py-1.5 text-[10px] leading-relaxed text-muted-foreground backdrop-blur">
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-cyan-400/85" />

@@ -99,13 +99,11 @@
 }
 
 /* ===== Leaflet 深色主题（新能源电力地理地图卡） ===== */
-/* 地图容器背景：无瓦片时显示暗色网格（呼应全局 bg-grid 电力感） */
+/* 地图容器背景：深色高级底（无瓦片时也不透白），!important 确保覆盖 leaflet 默认 #ddd */
 .leaflet-container {
   background:
-    linear-gradient(to right, hsl(217 33% 12% / 0.55) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(217 33% 12% / 0.55) 1px, transparent 1px),
-    radial-gradient(circle at 60% 20%, hsl(200 40% 14%), hsl(217 33% 9%));
-  background-size: 40px 40px, 40px 40px, 100% 100%;
+    radial-gradient(circle at 52% 26%, hsl(205 34% 14%) 0%, hsl(214 42% 9%) 48%, hsl(222 48% 6%) 100%)
+    !important;
   font-family: inherit;
 }
 
@@ -147,4 +145,17 @@
 .leaflet-tooltip.energy-tooltip.leaflet-tooltip-left:before,
 .leaflet-tooltip.energy-tooltip.leaflet-tooltip-right:before {
   border-top-color: transparent;
+}
+
+/* 地级市名标签：淡色小字，营造专业地图感 */
+.energy-city-label {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: hsl(210 25% 74% / 0.85);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.75);
+  pointer-events: none;
 }
