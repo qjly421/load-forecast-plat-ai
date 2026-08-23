@@ -152,10 +152,10 @@
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: hsl(210 25% 74% / 0.85);
+  color: hsl(0 0% 100%) !important; /* 白色字体，深蓝底上清晰 */
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 4px rgb(0 0 0 / 0.75);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.95), 0 0 2px rgb(0 0 0 / 0.85);
   pointer-events: none;
 }
