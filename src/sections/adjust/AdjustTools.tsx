@@ -7,8 +7,14 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { InfoTip } from '@/components/ui/info-tip'
 import { cn } from '@/lib/utils'
 import { slotTime, fmtMw, keypointCurve } from '@/lib/adjust-engine'
+
+/** 指标解释文案（ⓘ tooltip 用） */
+const INFO = {
+  keypoints: '人工在曲线上锚定的若干「确定负荷值」时刻，连起来重塑整条预测曲线。',
+}
 
 interface AdjustToolsProps {
   segments: SegmentDef[]
@@ -173,7 +179,8 @@ export default function AdjustTools({
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <Anchor className="h-3.5 w-3.5 text-amber-400" />
-            关键点调整
+            <span>关键点调整</span>
+            <InfoTip title="关键点">{INFO.keypoints}</InfoTip>
           </div>
           <div className="flex items-center gap-1.5">
             <Label htmlFor="kp-mode" className="text-[10px] text-muted-foreground">模式</Label>

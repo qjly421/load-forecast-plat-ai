@@ -130,7 +130,14 @@ export default function AdjustChart({
                 similar: similar ? `相似日 ${similar.date}` : '相似日',
                 history: '前一日实际',
               }
-              return <span style={{ color: 'hsl(215 20% 70%)' }}>{labels[value] ?? value}</span>
+              const colors: Record<string, string> = {
+                actual: 'hsl(210 40% 88%)',
+                center: 'hsl(25 90% 60%)',
+                adjusted: '#22d3ee',
+                similar: '#a78bfa',
+                history: 'hsl(215 20% 45%)',
+              }
+              return <span style={{ color: colors[value] ?? 'hsl(215 20% 70%)' }}>{labels[value] ?? value}</span>
             }}
           />
 
@@ -205,12 +212,12 @@ export default function AdjustChart({
             />
           )}
 
-          {/* 原始预测 */}
+          {/* 原始预测（中心，橙色更醒目） */}
           <Line
             type="monotone"
             dataKey="center"
-            stroke="hsl(215 20% 55%)"
-            strokeWidth={1.6}
+            stroke="hsl(25 90% 60%)"
+            strokeWidth={1.8}
             strokeDasharray="6 4"
             dot={false}
           />

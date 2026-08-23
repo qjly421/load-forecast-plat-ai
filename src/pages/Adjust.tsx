@@ -20,7 +20,15 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { InfoTip } from '@/components/ui/info-tip'
 import { cn } from '@/lib/utils'
+
+/** 指标解释文案（ⓘ tooltip 用，中性专业口径） */
+const INFO = {
+  days: '提前多少天预测：D1=提前1天、D14=提前14天。提前期越长，天气/负荷不确定性越大，难度越高。',
+  picp: '预测区间覆盖率（PICP）：预测不只给一个值，而是给出「下限~上限」区间（如 90% 区间），覆盖率即实际负荷真正落进该区间的比例，反映区间是否标得可靠。',
+  segs: '电网日内典型时段：凌晨低谷为「夜谷」，早晨上班高峰为「早峰」，白天平谷为「午谷」，晚间照明高峰为「晚峰」。',
+}
 
 export default function Adjust() {
   const [searchParams] = useSearchParams()
@@ -215,7 +223,8 @@ export default function Adjust() {
             />
             <ToolbarSelect
               icon={<Timer className="h-3.5 w-3.5" />}
-              label="提前期" value={String(dayplus)} onValueChange={(v) => setDayplus(Number(v))}
+              label={<><span>提前期</span><InfoTip title="提前期 D1/D3/D7/D14">{INFO.days}</InfoTip></>}
+              value={String(dayplus)} onValueChange={(v) => setDayplus(Number(v))}
               options={(meta?.dayplusOptions ?? [1, 3, 7, 14]).map((d) => ({ value: String(d), label: `D${d}` }))}
               width="w-[76px]"
             />
@@ -257,7 +266,7 @@ export default function Adjust() {
               />
               <Kpi label="调整后峰值" value={`${fmtMw(kpis.peak)}`} unit="MW" sub={`slot ${kpis.peakSlot}`} />
               <Kpi label="最大调整幅度" value={`${fmtMw(kpis.maxDelta)}`} unit="MW" />
-              <Kpi label="区间覆盖率" value={`${kpis.cov.toFixed(0)}%`} sub="实际落入90%区间" />
+              <Kpi label={<><span>区间覆盖率</span><InfoTip title="区间覆盖率 PICP">{INFO.picp}</InfoTip></>} value={`${kpis.cov.toFixed(0)}%`} sub="实际落入90%区间" />
               <Kpi label="操作步数" value={String(ops.length)} sub={savedAt ? '已保存' : '未保存'} tone={ops.length > 0 && !savedAt ? 'warn' : 'normal'} />
             </div>
           )}
@@ -284,7 +293,11 @@ export default function Adjust() {
                     </span>
                   </h2>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    背景色带：夜谷 / 早峰 / 午谷 / 晚峰 · 浅蓝带：90% 预测区间
+                    <span className="inline-flex items-center gap-1">
+                      背景色带：夜谷 / 早峰 / 午谷 / 晚峰
+                      <InfoTip title="夜谷 / 早峰 / 午谷 / 晚峰">{INFO.segs}</InfoTip>
+                    </span>
+                    · 浅蓝带：90% 预测区间
                   </p>
                 </div>
                 {simDay && (
@@ -314,6 +327,12 @@ export default function Adjust() {
             <WeatherChart day={dayWx} date={targetDay} />
             <OpsLog ops={ops} savedAt={savedAt} onUndo={undo} onReset={reset} onSave={save} onExport={doExport} />
           </div>
+
+          {/* 系统定位（页脚能力概述） */}
+          <footer className="rounded-xl border border-border/60 bg-card/30 px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+            面向电力调度的负荷预测研判工作台：AI 全月预测底稿 · 多模型对比（LGB/NN）· 相似日 / 气象 / 分时段人工修正 ·
+            概率区间 · 操作回放与导出。
+          </footer>
         </main>
       )}
     </div>
@@ -321,7 +340,7 @@ export default function Adjust() {
 }
 
 function ToolbarSelect({ icon, label, value, onValueChange, options, width }: {
-  icon: React.ReactNode; label: string; value: string;
+  icon: React.ReactNode; label: React.ReactNode; value: string;
   onValueChange: (v: string) => void; options: { value: string; label: string }[]; width: string
 }) {
   return (
@@ -342,7 +361,7 @@ function ToolbarSelect({ icon, label, value, onValueChange, options, width }: {
 }
 
 function Kpi({ label, value, unit, sub, tone = 'normal' }: {
-  label: string; value: string; unit?: string; sub?: string
+  label: React.ReactNode; value: string; unit?: string; sub?: string
   tone?: 'normal' | 'good' | 'bad' | 'warn'
 }) {
   const toneClass = {

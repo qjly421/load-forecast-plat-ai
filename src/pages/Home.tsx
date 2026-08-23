@@ -5,7 +5,7 @@ import {
   ReferenceLine, ResponsiveContainer, Cell, PieChart, Pie,
 } from 'recharts'
 import {
-  LayoutDashboard, Target, ShieldCheck, Thermometer, Zap, ArrowRight,
+  LayoutDashboard, Target, ShieldCheck, Zap, ArrowRight,
   TrendingDown, Database, Loader2, Flame, CloudRainWind, Power, Waves,
 } from 'lucide-react'
 import { loadMeta, loadWeather, loadForecast, loadIntervals, loadInstalledCapacity } from '@/lib/data-service'
@@ -13,7 +13,19 @@ import { mape } from '@/lib/adjust-engine'
 import { analyzePeriodicity } from '@/lib/spectral'
 import type { ForecastFile, MetaFile, WeatherFile, InstalledCapacityFile } from '@/types/adjust'
 import { Badge } from '@/components/ui/badge'
+import { InfoTip } from '@/components/ui/info-tip'
+import { CollapsibleInfo } from '@/components/ui/collapsible-info'
 import { cn } from '@/lib/utils'
+
+/** 指标解释文案（ⓘ tooltip 用，中性专业口径） */
+const INFO = {
+  mape: '平均绝对百分比误差（MAPE）：预测值与实际值的平均偏差占比，越低代表预测越准；1% 即平均每点偏差 1%，是电力行业通用误差口径。',
+  picp: '预测区间覆盖率（PICP）：预测不只给一个值，而是给出「下限~上限」区间（如 90% 区间），覆盖率即整月实际负荷真正落进该区间的比例，反映区间是否标得可靠。',
+  mpiw: '预测区间平均宽度（MPIW）：区间越窄说明预测越精确、越敢给出确定结论；越宽说明越保守、不确定性越大（常与覆盖率配合看）。',
+  peak: '当月全天负荷的最大值，是电网调度与保供电最关注的指标。',
+  hot: '当月日均/最高气温最高的一天，高温常推升空调负荷。',
+  capacity: '某地区各类电源（火电/风电/光伏/水电/核电等）装机容量占比，反映电源构成与调峰能力。',
+}
 
 type Intervals = Record<string, Record<string, unknown>[]>
 
@@ -233,19 +245,24 @@ export default function Home() {
         {/* KPI 条 */}
         {stats && extremes && (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <Kpi icon={<Target className="h-3.5 w-3.5 text-cyan-400" />} label="LGB 全月 MAPE（D1）"
+            <Kpi icon={<Target className="h-3.5 w-3.5 text-cyan-400" />}
+              label={<><span>LGB 全月 MAPE（D1）</span><InfoTip title="LGB / NN 全月 MAPE">{INFO.mape}</InfoTip></>}
               value={`${stats.lgb.mape.toFixed(2)}%`} />
-            <Kpi icon={<Target className="h-3.5 w-3.5 text-violet-400" />} label="NN 全月 MAPE（D1）"
+            <Kpi icon={<Target className="h-3.5 w-3.5 text-violet-400" />}
+              label={<><span>NN 全月 MAPE（D1）</span><InfoTip title="LGB / NN 全月 MAPE">{INFO.mape}</InfoTip></>}
               value={`${stats.nn.mape.toFixed(2)}%`} />
-            <Kpi icon={<ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />} label="区间覆盖率 PICP"
-              value={`${stats.lgb.picp.toFixed(1)}%`} sub={`LGB · NN ${stats.nn.picp.toFixed(1)}% · D1-D14全口径 · 名义90%`}
-              tone="warn" />
-            <Kpi icon={<TrendingDown className="h-3.5 w-3.5 text-sky-400" />} label="平均区间宽度"
+            <Kpi icon={<ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />}
+              label={<><span>区间覆盖率 PICP</span><InfoTip title="区间覆盖率 PICP">{INFO.picp}</InfoTip></>}
+              value={`${stats.lgb.picp.toFixed(1)}%`} sub={`LGB · NN ${stats.nn.picp.toFixed(1)}% · D1-D14全口径 · 名义90%`} />
+            <Kpi icon={<TrendingDown className="h-3.5 w-3.5 text-sky-400" />}
+              label={<><span>平均区间宽度</span><InfoTip title="平均区间宽度 MPIW">{INFO.mpiw}</InfoTip></>}
               value={`${Math.round(stats.lgb.mpiw).toLocaleString()}`} unit="MW"
               sub={`NN ${Math.round(stats.nn.mpiw).toLocaleString()} MW`} />
-            <Kpi icon={<Zap className="h-3.5 w-3.5 text-rose-400" />} label="月最大峰荷"
+            <Kpi icon={<Zap className="h-3.5 w-3.5 text-rose-400" />}
+              label={<><span>月最大峰荷</span><InfoTip title="月最大峰荷">{INFO.peak}</InfoTip></>}
               value={extremes.peakDay.max.toLocaleString()} unit="MW" sub={extremes.peakDay.fullDate} />
-            <Kpi icon={<Flame className="h-3.5 w-3.5 text-orange-400" />} label="最热日"
+            <Kpi icon={<Flame className="h-3.5 w-3.5 text-orange-400" />}
+              label={<><span>最热日</span><InfoTip title="最热日">{INFO.hot}</InfoTip></>}
               value={`${extremes.hotDay.tempMax}°C`} sub={extremes.hotDay.fullDate} />
           </div>
         )}
@@ -338,7 +355,7 @@ export default function Home() {
           <div className="card-glow rounded-xl p-4">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="text-sm font-semibold">区间覆盖率 · 按温度 regime</h3>
-              <span className="text-[10px] text-muted-foreground">高温时段区间明显偏窄</span>
+              <span className="text-[10px] text-muted-foreground">不同温度工况下的区间质量对比</span>
             </div>
             <div style={{ height: 220 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -404,7 +421,9 @@ export default function Home() {
           <div className="card-glow rounded-xl p-4">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                <Power className="h-3.5 w-3.5 text-amber-400" />山东电源装机结构
+                <Power className="h-3.5 w-3.5 text-amber-400" />
+                <span>山东电源装机结构</span>
+                <InfoTip title="电源装机结构">{INFO.capacity}</InfoTip>
               </h3>
               <span className="text-[10px] text-muted-foreground">{installed.year} 年底 · 单位 万千瓦</span>
             </div>
@@ -482,13 +501,18 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 口径说明 */}
-        <div className="rounded-xl border border-border bg-card/60 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
-          <Thermometer className="mr-1 inline h-3.5 w-3.5 text-orange-400" />
-          数据来源：predictions_2025_06 / weather_daily_2025_06 / interval 汇总表（grouped_split_conformal 口径）。
-          负荷为「实际负荷-直调」口径。注意区间实测 PICP（LGB 55.1% / NN 68.4%）低于名义 90%，高温 regime 下区间覆盖进一步下降，
-          手动调整时建议结合 TopK 相似期与气象趋势综合判断。
-        </div>
+        {/* 数据与口径说明（可折叠） */}
+        <CollapsibleInfo>
+          数据口径：2025-06 全月 · 目标日 1-30 · 提前期 D1-D14 · LGB / NN 双模型 · 概率区间为分组分裂共形（grouped split conformal）口径。
+          负荷为「实际负荷-直调」口径。数据来源：predictions_2025_06 / weather_daily_2025_06 / interval 汇总表，
+          装机结构取自山东省能源局与国家能源局公开数据；手动调整结果可在工作台操作记录中回放并导出。
+        </CollapsibleInfo>
+
+        {/* 系统定位（页脚能力概述） */}
+        <footer className="rounded-xl border border-border/60 bg-card/30 px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+          面向电力调度的负荷预测研判工作台：AI 全月预测底稿 · 多模型对比（LGB/NN）· 相似日 / 气象 / 分时段人工修正 ·
+          概率区间 · 操作回放与导出。
+        </footer>
       </main>
     </div>
   )
@@ -507,7 +531,7 @@ function periodName(h: number): string {
 }
 
 function Kpi({ icon, label, value, unit, sub, tone = 'normal' }: {
-  icon: React.ReactNode; label: string; value: string; unit?: string; sub?: string
+  icon: React.ReactNode; label: React.ReactNode; value: string; unit?: string; sub?: string
   tone?: 'normal' | 'warn'
 }) {
   return (

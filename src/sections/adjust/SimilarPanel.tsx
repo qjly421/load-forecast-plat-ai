@@ -3,7 +3,13 @@ import { History, Blend, Thermometer, Sun, CloudRain } from 'lucide-react'
 import type { SimilarDay } from '@/types/adjust'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
+import { InfoTip } from '@/components/ui/info-tip'
 import { cn } from '@/lib/utils'
+
+/** 指标解释文案（ⓘ tooltip 用） */
+const INFO = {
+  similar: '历史上与目标日「负荷形状 + 天气」最接近的若干天，可参考其走势，用相似日形状修正当天预测。',
+}
 
 interface SimilarPanelProps {
   days: SimilarDay[]
@@ -26,6 +32,7 @@ export default function SimilarPanel({ days, selected, onSelect, onApply }: Simi
         <div className="flex items-center gap-1.5">
           <History className="h-4 w-4 text-violet-400" />
           <h3 className="text-sm font-semibold">TopK 相似期</h3>
+          <InfoTip title="相似日 / TopK相似期">{INFO.similar}</InfoTip>
         </div>
         <span className="text-[10px] text-muted-foreground">DTW负荷 0.6 + 天气 0.4</span>
       </div>
