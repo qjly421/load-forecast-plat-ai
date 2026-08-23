@@ -285,6 +285,13 @@ export default function Home() {
           </div>
         </div>
 
+        {/* 负荷时序特征分析（谷峰/周期性/波动性/异常 · 可折叠） */}
+        <TimeseriesFeatures
+          days={meta.targetDays}
+          fcLgb={fcLgb}
+          daily={daily}
+        />
+
         {/* 区间质量两图 */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <div className="card-glow rounded-xl p-4">
@@ -431,13 +438,6 @@ export default function Home() {
             ，推算项见 tooltip。
           </p>
         </div>
-
-        {/* 负荷时序特征分析（四视图：趋势/周期性/波动性/异常） */}
-        <TimeseriesFeatures
-          days={meta.targetDays}
-          fcLgb={fcLgb}
-          daily={daily}
-        />
 
         {/* 新能源电力地理 · 山东电源结构背景 */}
         <EnergyMap />

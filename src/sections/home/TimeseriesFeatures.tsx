@@ -1,11 +1,13 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ReferenceLine, Scatter, ResponsiveContainer, Cell,
 } from 'recharts'
-import { TrendingUp, Waves, Activity, AlertTriangle } from 'lucide-react'
+import { Gauge, Waves, Activity, AlertTriangle, ChevronDown } from 'lucide-react'
 import { analyzePeriodicity } from '@/lib/spectral'
 import type { ForecastFile } from '@/types/adjust'
+import { InfoTip } from '@/components/ui/info-tip'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 
 // 深色主题统一色板
@@ -28,9 +30,10 @@ const TIP = {
 const axisTick = { fontSize: 10, fill: C.axis }
 const axisLine = { stroke: 'hsl(217 33% 18%)' }
 
-// 各图表图例/去重中文标签
-const TREND_LABEL: Record<string, string> = { mean: '日均', max: '最高', min: '最低' }
-const ANOMALY_LABEL: Record<string, string> = { mean: '日均负荷', tempMax: '日最高温', jump: '突变关注', hot: '高温关注' }
+// 异常图中各序列的 中文名 / 单位 / 颜色（tooltip 用）
+const ANOM_NAME: Record<string, string> = { mean: '日均负荷', tempMax: '日最高温', jump: '突变关注', hot: '高温关注' }
+const ANOM_UNIT: Record<string, string> = { mean: ' MW', tempMax: ' °C', jump: ' MW', hot: ' °C' }
+const ANOM_COLOR: Record<string, string> = { mean: C.sky, tempMax: C.rose, jump: C.amber, hot: C.rose }
 
 export interface DailyRow {
   date: string
@@ -70,12 +73,53 @@ function rollingStd(arr: number[], win: number): number[] {
   return out
 }
 
+/** 谷峰结构 tooltip：逐日 峰谷差 / 负荷率 / 峰值时刻 / 峰值负荷 */
+function ValleyPeakTooltip({ active, payload, label }: any) {
+  if (!active || !payload || !payload.length) return null
+  const row = payload[0]?.payload
+  if (!row) return null
+  return (
+    <div style={{ ...TIP.contentStyle, color: C.white }}>
+      <div style={{ fontWeight: 600, marginBottom: 3 }}>{row.fullDate ?? label}</div>
+      <div>峰谷差：{row.diff.toLocaleString()} MW</div>
+      <div>负荷率：{row.ratio.toFixed(1)}%</div>
+      <div>峰值时刻：{row.peakTime}</div>
+      <div>峰值负荷：{row.peakLoad.toLocaleString()} MW</div>
+    </div>
+  )
+}
+
+/** 异常 · 关注时段 tooltip：各序列值 + “为什么关注”说明 */
+function AnomalyTooltip({ active, payload, label }: any) {
+  if (!active || !payload || !payload.length) return null
+  const row = payload.find((p: any) => p.payload?.reason)?.payload ?? payload[0]?.payload
+  if (!row) return null
+  const vals = payload.filter((p: any) => p.value != null && p.value !== undefined)
+  return (
+    <div style={{ ...TIP.contentStyle, color: C.white }}>
+      <div style={{ fontWeight: 600, marginBottom: 3 }}>{row.fullDate ?? label}</div>
+      {vals.map((p: any, i: number) => (
+        <div key={i} style={{ color: ANOM_COLOR[p.dataKey] ?? C.white }}>
+          {ANOM_NAME[p.dataKey] ?? String(p.dataKey)}：{typeof p.value === 'number' ? p.value.toLocaleString() : p.value}{ANOM_UNIT[p.dataKey] ?? ''}
+        </div>
+      ))}
+      {row.reason && (
+        <div style={{ marginTop: 3, borderTop: `1px solid ${C.tooltipBd}`, paddingTop: 3, color: C.amber }}>
+          关注原因：{row.reason}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /**
  * 负荷时序特征分析 · 四视图
- * 趋势（全月日均）/ 周期性（日内自相关 + 日内形态）/ 波动性（移动标准差）/ 异常关注时段（突变 + 高温）
+ * 谷峰结构（逐日峰谷差/负荷率/峰值时刻）/ 周期性（日内自相关 + 日内形态）/ 波动性（移动标准差）/ 异常关注时段（突变 + 高温）
  * 全部基于 2025-06 真实负荷与气温数据计算。
  */
 export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
+  const [open, setOpen] = useState(true)
+
   // ---- 拼接 30 天 2880 点真实负荷序列（96 点/天，15 分钟采样） ----
   const series = useMemo(() => {
     const s: number[] = []
@@ -85,6 +129,60 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
     }
     return s
   }, [days, fcLgb])
+
+  // ---- 谷峰结构 · 日内调节幅度：逐日 峰谷差 / 负荷率 / 峰值时刻 ----
+  const valleyPeak = useMemo(() => {
+    if (!daily.length) return []
+    const slots = 96
+    return daily.map((d) => {
+      const act = fcLgb[d.fullDate]?.['1']?.actual
+      let peakSlot = -1
+      let peakLoad = d.max
+      if (act && act.length === slots) {
+        let bi = 0
+        for (let i = 1; i < slots; i++) if (act[i] > act[bi]) bi = i
+        peakSlot = bi
+        peakLoad = Math.round(act[bi])
+      }
+      const minutes = peakSlot >= 0 ? peakSlot * 15 : -1
+      const hh = minutes >= 0 ? String(Math.floor(minutes / 60)).padStart(2, '0') : '--'
+      const mm = minutes >= 0 ? String(minutes % 60).padStart(2, '0') : '--'
+      const diff = d.max - d.min
+      const ratio = d.max > 0 ? (d.mean / d.max) * 100 : 0
+      return {
+        date: d.date,
+        fullDate: d.fullDate,
+        diff,
+        ratio: Math.round(ratio * 10) / 10,
+        peakTime: `${hh}:${mm}`,
+        peakHour: peakSlot >= 0 ? Math.floor(minutes / 60) : -1,
+        peakLoad,
+      }
+    })
+  }, [daily, fcLgb])
+
+  // 谷峰结构结论（全部真实计算）
+  const valleyPeakConcl = useMemo(() => {
+    if (!valleyPeak.length) return ''
+    const maxDiff = valleyPeak.reduce((a, b) => (b.diff > a.diff ? b : a))
+    const minRatio = valleyPeak.reduce((a, b) => (b.ratio < a.ratio ? b : a))
+    const hourCount = new Map<number, number>()
+    for (const vp of valleyPeak) {
+      if (vp.peakHour < 0) continue
+      hourCount.set(vp.peakHour, (hourCount.get(vp.peakHour) ?? 0) + 1)
+    }
+    let modalHour = -1
+    let modalCount = 0
+    for (const [h, c] of hourCount) if (c > modalCount) { modalCount = c; modalHour = h }
+    // 统计峰值时刻落在「峰时 ± 1h」窗口的天数，得出更贴近实际的集中区间
+    const windowCount = modalHour >= 0
+      ? valleyPeak.filter((vp) => vp.peakHour >= 0 && Math.abs(vp.peakHour - modalHour) <= 1).length
+      : 0
+    const modalText = modalHour >= 0
+      ? `峰值时刻集中在 ~${modalHour} 时前后（${windowCount}/${valleyPeak.length} 天）`
+      : '峰值时刻分布较分散'
+    return `峰谷差最大出现在 ${maxDiff.date}（≈${maxDiff.diff.toLocaleString()} MW）；负荷率最低 ${minRatio.date}（≈${minRatio.ratio.toFixed(1)}%）；${modalText}。`
+  }, [valleyPeak])
 
   // ---- 周期性：自相关峰值 + 日内均值形态 ----
   const spectralPeaks = useMemo(() => {
@@ -167,7 +265,7 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
     return Math.round(volatility.reduce((a, b) => a + b.d, 0) / volatility.length)
   }, [volatility])
 
-  // ---- 异常 · 关注时段：逐日突变幅度 + 高温日 ----
+  // ---- 异常 · 关注时段：逐日突变幅度 + 高温日（附“为什么关注”理由） ----
   const anomaly = useMemo(() => {
     if (!daily.length) return []
     const changes = daily.map((d, i) => {
@@ -180,14 +278,24 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
     const chThr = chMean + chStd
 
     const tempSorted = [...daily].sort((a, b) => b.tempMax - a.tempMax)
-    const hotDays = new Set(tempSorted.slice(0, 3).map((d) => d.fullDate))
+    const rankMap = new Map<string, number>()
+    tempSorted.forEach((d, i) => rankMap.set(d.fullDate, i + 1))
 
-    return changes.map((c) => ({
-      ...c,
-      // 突变关注点直接落在当日负荷曲线上（左轴），高温关注点落在气温曲线上（右轴）
-      jump: c.change >= chThr ? c.mean : null,
-      hot: hotDays.has(c.fullDate) ? c.tempMax : null,
-    }))
+    return changes.map((c) => {
+      const isJump = c.change >= chThr
+      const rank = rankMap.get(c.fullDate) ?? 0
+      const isHot = rank <= 3
+      const reasons: string[] = []
+      if (isJump) reasons.push(`日均负荷较前日跳变 +${c.change.toFixed(0)} MW，超过统计阈值 ${chThr.toFixed(0)} MW`)
+      if (isHot) reasons.push(`日最高温 ${c.tempMax}°C，位居全月第 ${rank} 高`)
+      return {
+        ...c,
+        // 突变关注点直接落在当日负荷曲线上（左轴），高温关注点落在气温曲线上（右轴）
+        jump: isJump ? c.mean : null,
+        hot: isHot ? c.tempMax : null,
+        reason: reasons.join('；'),
+      }
+    })
   }, [daily])
 
   const anomalyCount = useMemo(() => anomaly.filter((a) => a.jump !== null || a.hot !== null).length, [anomaly])
@@ -212,163 +320,153 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
 
   return (
     <div className="card-glow rounded-xl p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <div>
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-            <Activity className="h-3.5 w-3.5 text-cyan-400" />
-            <span>负荷时序特征分析</span>
-          </h3>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            「趋势 / 周期性 / 波动性 / 异常」四视图 · 全部基于 2025-06 真实负荷与气温计算
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {/* 1 · 趋势 */}
-        <SubCard title="全月负荷趋势" subtitle="2025-06 · 日均负荷走势（叠加日最高/最低）" icon={<TrendingUp className="h-3.5 w-3.5 text-cyan-400" />}>
-          <div style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={daily} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
-                <XAxis dataKey="date" tick={axisTick} tickLine={false} axisLine={axisLine} interval={1} />
-                <YAxis domain={['dataMin - 2000', 'dataMax + 2000']} tick={axisTick} tickLine={false} axisLine={false}
-                  tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={40} />
-                <Tooltip
-                  {...TIP}
-                  formatter={(v: number, name: string) => {
-                    const m: Record<string, [string, string]> = {
-                      mean: ['日均负荷', ' MW'], max: ['日最高', ' MW'], min: ['日最低', ' MW'],
-                    }
-                    const [label, unit] = m[name] ?? [name, '']
-                    return [`${v.toLocaleString()}${unit}`, label]
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 2 }}
-                  formatter={(v: string) => <span style={{ color: C.axis }}>{TREND_LABEL[v] ?? v}</span>} />
-                <Area dataKey="mean" stroke="none" fill={C.cyan} fillOpacity={0.12} isAnimationActive={false} />
-                <Line dataKey="mean" type="monotone" stroke={C.white} strokeWidth={1.8} dot={false} />
-                <Line dataKey="max" type="monotone" stroke={C.sky} strokeWidth={1} strokeOpacity={0.5} dot={false} />
-                <Line dataKey="min" type="monotone" stroke={C.sky} strokeWidth={1} strokeOpacity={0.5} dot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger className="flex w-full items-center justify-between text-left">
+          <div>
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+              <Activity className="h-3.5 w-3.5 text-cyan-400" />
+              <span>负荷时序特征分析</span>
+            </h3>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              「谷峰 / 周期性 / 波动性 / 异常」四视图 · 全部基于 2025-06 真实负荷与气温计算
+            </p>
           </div>
-        </SubCard>
+          <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+        </CollapsibleTrigger>
 
-        {/* 2 · 周期性 */}
-        <SubCard title="日内周期性 · 自相关" subtitle="24h 主导 · 自相关峰值 + 日内平均荷形" icon={<Waves className="h-3.5 w-3.5 text-cyan-400" />}>
-          <div style={{ height: 74 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={spectralChart} margin={{ top: 6, right: 6, bottom: 0, left: -14 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
-                <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={false} />
-                <YAxis domain={[0, 1]} tick={axisTick} tickLine={false} axisLine={false} width={34} />
-                <Tooltip {...TIP} formatter={(v: number) => [`r = ${v}`, '自相关系数']} />
-                <Bar dataKey="corr" radius={[4, 4, 0, 0]} barSize={40}>
-                  {spectralChart.map((r, i) => (
-                    <Cell key={i} fill={r.hours === 24 ? C.cyan : r.hours === 12 ? C.amber : C.violet} />
-                  ))}
-                </Bar>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{ height: 92 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={intradayShape} margin={{ top: 6, right: 8, bottom: 0, left: -8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
-                <XAxis dataKey="hour" type="number" domain={[0, 24]} ticks={[0, 6, 12, 18, 24]} tick={axisTick} tickLine={false} axisLine={false}
-                  tickFormatter={(v: number) => `${v}时`} />
-                <YAxis tick={axisTick} tickLine={false} axisLine={false}
-                  tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={34} domain={['dataMin', 'dataMax']} />
-                <Tooltip {...TIP}
-                  formatter={(v: number) => [`${v.toLocaleString()} MW`, '日内均负荷']}
-                  labelFormatter={(l: number) => `${l} 时`} />
-                <Area dataKey="v" stroke={C.cyanSoft} strokeWidth={1.8} fill={C.cyan} fillOpacity={0.12} dot={false} isAnimationActive={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{spectralConclusion}</p>
-        </SubCard>
+        <CollapsibleContent>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {/* 1 · 谷峰结构 · 日内调节幅度 */}
+            <SubCard title="谷峰结构 · 日内调节幅度" subtitle="逐日 峰谷差 & 负荷率 · 反映日内调峰空间" icon={<Gauge className="h-3.5 w-3.5 text-cyan-400" />}>
+              <div style={{ height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={valleyPeak} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                    <XAxis dataKey="date" tick={axisTick} tickLine={false} axisLine={axisLine} interval={1} />
+                    <YAxis yAxisId="l" tick={axisTick} tickLine={false} axisLine={false}
+                      tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={40}
+                      domain={[0, 'dataMax']} />
+                    <YAxis yAxisId="r" orientation="right" domain={[0, 100]} unit="%" tick={axisTick} tickLine={false} axisLine={false} width={40} />
+                    <Tooltip {...TIP} content={ValleyPeakTooltip} cursor={{ fill: C.grid, fillOpacity: 0.3 }} />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 2 }}
+                      formatter={(v: string) => <span style={{ color: C.axis }}>{v}</span>} />
+                    <Bar yAxisId="l" dataKey="diff" name="峰谷差" fill={C.cyan} fillOpacity={0.35} radius={[3, 3, 0, 0]} barSize={10} />
+                    <Line yAxisId="r" dataKey="ratio" name="负荷率" type="monotone" stroke={C.amber} strokeWidth={1.8} dot={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{valleyPeakConcl}</p>
+            </SubCard>
 
-        {/* 3 · 波动性 */}
-        <SubCard title="负荷波动性 · 移动标准差" subtitle="窗口 = 1 天（96 点）· 反映数据稳定性" icon={<Activity className="h-3.5 w-3.5 text-violet-400" />}>
-          <div style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={volatility} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
-                <XAxis dataKey="date" tick={axisTick} tickLine={false} axisLine={axisLine} interval={1} />
-                <YAxis tick={axisTick} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${v}`} width={44}
-                  domain={[0, 'dataMax + 500']} />
-                <Tooltip {...TIP} formatter={(v: number) => [`${v.toLocaleString()} MW`, '移动标准差']} />
-                <ReferenceLine y={volMean} stroke={C.amber} strokeDasharray="5 4"
-                  label={{ value: `月均 ${volMean}`, position: 'insideTopRight', fill: C.amber, fontSize: 10 }} />
-                <Area dataKey="d" type="monotone" stroke={C.violet} strokeWidth={1.8} fill={C.violet} fillOpacity={0.14} dot={false} isAnimationActive={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-            {volMax
-              ? `1 天窗口移动标准差峰值出现在 ${volMax.date}（≈ ${volMax.d} MW），为月均值（${volMean} MW）的 ${volRatio} 倍，波动偏强时段可在手动调整中复核。`
-              : '月份内波动整体平稳。'}
-          </p>
-        </SubCard>
+            {/* 2 · 周期性 */}
+            <SubCard title="日内周期性 · 自相关" subtitle="24h 主导 · 自相关峰值 + 日内平均荷形" icon={<Waves className="h-3.5 w-3.5 text-cyan-400" />}>
+              <div style={{ height: 74 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={spectralChart} margin={{ top: 6, right: 6, bottom: 0, left: -14 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                    <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={false} />
+                    <YAxis domain={[0, 1]} tick={axisTick} tickLine={false} axisLine={false} width={34} />
+                    <Tooltip {...TIP} formatter={(v: number) => [`r = ${v}`, '自相关系数']} />
+                    <Bar dataKey="corr" radius={[4, 4, 0, 0]} barSize={40}>
+                      {spectralChart.map((r, i) => (
+                        <Cell key={i} fill={r.hours === 24 ? C.cyan : r.hours === 12 ? C.amber : C.violet} />
+                      ))}
+                    </Bar>
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ height: 92 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={intradayShape} margin={{ top: 6, right: 8, bottom: 0, left: -8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                    <XAxis dataKey="hour" type="number" domain={[0, 24]} ticks={[0, 6, 12, 18, 24]} tick={axisTick} tickLine={false} axisLine={false}
+                      tickFormatter={(v: number) => `${v}时`} />
+                    <YAxis tick={axisTick} tickLine={false} axisLine={false}
+                      tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={34} domain={['dataMin', 'dataMax']} />
+                    <Tooltip {...TIP}
+                      formatter={(v: number) => [`${v.toLocaleString()} MW`, '日内均负荷']}
+                      labelFormatter={(l: number) => `${l} 时`} />
+                    <Area dataKey="v" stroke={C.cyanSoft} strokeWidth={1.8} fill={C.cyan} fillOpacity={0.12} dot={false} isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{spectralConclusion}</p>
+            </SubCard>
 
-        {/* 4 · 异常· 关注时段 */}
-        <SubCard title="异常变化 · 关注时段" subtitle="逐日突变幅度 + 高温日 · 建议在手动调整中复核" icon={<AlertTriangle className="h-3.5 w-3.5 text-amber-400" />}>
-          <div style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={anomaly} margin={{ top: 8, right: 6, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
-                <XAxis dataKey="date" tick={axisTick} tickLine={false} axisLine={axisLine} interval={1} />
-                <YAxis yAxisId="l" domain={['dataMin - 2000', 'dataMax + 2000']} tick={axisTick} tickLine={false} axisLine={false}
-                  tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={40} />
-                <YAxis yAxisId="t" orientation="right" domain={[15, 40]} tick={axisTick} tickLine={false} axisLine={false}
-                  unit="°" width={32} />
-                <Tooltip {...TIP}
-                  formatter={(v: number, name: string) => {
-                    const m: Record<string, [string, string]> = {
-                      mean: ['日均负荷', ' MW'], tempMax: ['日最高温', ' °C'],
-                      jump: ['突变关注', ' MW'], hot: ['高温关注', ' °C'],
-                    }
-                    const [label, unit] = m[name] ?? [name, '']
-                    return [`${v.toLocaleString()}${unit}`, label]
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v: string) =>
-                  <span style={{ color: C.axis }}>{ANOMALY_LABEL[v] ?? v}</span>} />
-                <Line yAxisId="l" dataKey="mean" type="monotone" stroke={C.sky} strokeWidth={1.6} dot={false} />
-                <Line yAxisId="t" dataKey="tempMax" type="monotone" stroke={C.rose} strokeWidth={1.1} strokeDasharray="4 3" dot={false} />
-                <Scatter yAxisId="l" dataKey="jump" fill={C.amber} name="突变关注" />
-                <Scatter yAxisId="t" dataKey="hot" fill={C.rose} name="高温关注" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-            标注 {anomalyCount} 个关注时段（{anomaly.filter((a) => a.jump !== null).length} 个突变点 ·
-            {anomaly.filter((a) => a.hot !== null).length} 个高温日），建议在「手动调整」中逐段复核。
-          </p>
-        </SubCard>
-      </div>
+            {/* 3 · 波动性 */}
+            <SubCard title="负荷波动性 · 移动标准差" subtitle="窗口 = 1 天（96 点）· 反映数据稳定性" icon={<Activity className="h-3.5 w-3.5 text-violet-400" />}>
+              <div style={{ height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={volatility} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                    <XAxis dataKey="date" tick={axisTick} tickLine={false} axisLine={axisLine} interval={1} />
+                    <YAxis tick={axisTick} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${v}`} width={44}
+                      domain={[0, 'dataMax + 500']} />
+                    <Tooltip {...TIP} formatter={(v: number) => [`${v.toLocaleString()} MW`, '移动标准差']} />
+                    <ReferenceLine y={volMean} stroke={C.amber} strokeDasharray="5 4"
+                      label={{ value: `月均 ${volMean}`, position: 'insideTopRight', fill: C.amber, fontSize: 10 }} />
+                    <Area dataKey="d" type="monotone" stroke={C.violet} strokeWidth={1.8} fill={C.violet} fillOpacity={0.14} dot={false} isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                {volMax
+                  ? `1 天窗口移动标准差峰值出现在 ${volMax.date}（≈ ${volMax.d} MW），为月均值（${volMean} MW）的 ${volRatio} 倍，波动偏强时段可在手动调整中复核。`
+                  : '月份内波动整体平稳。'}
+              </p>
+            </SubCard>
 
-      {/* 底部综述 */}
-      {summary && (
-        <p className="mt-3 rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[11px] leading-relaxed text-foreground/90">
-          综述：{summary}
-        </p>
-      )}
+            {/* 4 · 异常· 关注时段 */}
+            <SubCard title="异常变化 · 关注时段" subtitle="逐日突变幅度 + 高温日 · 建议在手动调整中复核" icon={<AlertTriangle className="h-3.5 w-3.5 text-amber-400" />}
+              info={<InfoTip title="异常关注判定规则">突变关注 = 某日日均负荷较前一日跳变超过历史均值+1σ；高温关注 = 日最高温位居全月前 3 高，推升制冷负荷。</InfoTip>}>
+              <div style={{ height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={anomaly} margin={{ top: 8, right: 6, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                    <XAxis dataKey="date" tick={axisTick} tickLine={false} axisLine={axisLine} interval={1} />
+                    <YAxis yAxisId="l" domain={['dataMin - 2000', 'dataMax + 2000']} tick={axisTick} tickLine={false} axisLine={false}
+                      tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={40} />
+                    <YAxis yAxisId="t" orientation="right" domain={[15, 40]} tick={axisTick} tickLine={false} axisLine={false}
+                      unit="°" width={32} />
+                    <Tooltip {...TIP} content={AnomalyTooltip} cursor={{ stroke: C.axis, strokeOpacity: 0.4 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v: string) =>
+                      <span style={{ color: C.axis }}>{ANOM_NAME[v] ?? v}</span>} />
+                    <Line yAxisId="l" dataKey="mean" type="monotone" stroke={C.sky} strokeWidth={1.6} dot={false} />
+                    <Line yAxisId="t" dataKey="tempMax" type="monotone" stroke={C.rose} strokeWidth={1.1} strokeDasharray="4 3" dot={false} />
+                    <Scatter yAxisId="l" dataKey="jump" fill={C.amber} name="突变关注" />
+                    <Scatter yAxisId="t" dataKey="hot" fill={C.rose} name="高温关注" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                标注 {anomalyCount} 个关注时段（{anomaly.filter((a) => a.jump !== null).length} 个突变点 ·
+                {anomaly.filter((a) => a.hot !== null).length} 个高温日），建议在「手动调整」中逐段复核。
+              </p>
+            </SubCard>
+          </div>
+
+          {/* 底部综述 */}
+          {summary && (
+            <p className="mt-3 rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[11px] leading-relaxed text-foreground/90">
+              综述：{summary}
+            </p>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   )
 }
 
-/** 子图卡片：统一标题 / 副标题 / 内容 */
-function SubCard({ title, subtitle, icon, children }: {
-  title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode
+/** 子图卡片：统一标题 / 副标题 / 内容（可选 ⓘ 说明） */
+function SubCard({ title, subtitle, icon, info, children }: {
+  title: string; subtitle: string; icon: React.ReactNode; info?: React.ReactNode; children: React.ReactNode
 }) {
   return (
     <div className={cn('card-glow rounded-xl p-3')}>
       <div className="mb-1 flex items-center gap-1.5">
         {icon}
         <h4 className="text-[13px] font-semibold">{title}</h4>
+        {info}
       </div>
       <p className="mb-1 text-[10px] text-muted-foreground">{subtitle}</p>
       {children}
