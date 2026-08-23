@@ -7,6 +7,9 @@ import type {
   MetaFile,
   InstalledCapacityFile,
   WindSolarSitesFile,
+  RampSeriesFile,
+  ModelCompareFile,
+  CrossRegionFile,
 } from '@/types/adjust'
 
 const cache: Record<string, unknown> = {}
@@ -34,6 +37,12 @@ export const loadWindSolarSites = () =>
   loadJson<WindSolarSitesFile>('data/wind_solar_sites.json')
 export const loadShandongGeo = () =>
   loadJson<FeatureCollection>('data/shape/shandong_geo.json')
+export const loadRampSeries = (region: 'nl' | 'be') =>
+  loadJson<RampSeriesFile>(`data/ramp_series_${region}.json`)
+export const loadCrossRegion = () =>
+  loadJson<CrossRegionFile>('data/cross_region_metrics.json')
+export const loadModelCompare = () =>
+  loadJson<ModelCompareFile>('data/model_compare.json')
 
 // ---- 操作记录持久化（localStorage） ----
 import type { SavedSession } from '@/types/adjust'

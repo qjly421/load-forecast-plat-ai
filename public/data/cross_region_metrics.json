@@ -1,0 +1,332 @@
+{
+  "methodology": {
+    "data": "OPSD time_series_15min_singleindex.csv, DE/BE/NL 实际负荷",
+    "window": "2018-01-01 ~ 2019-12-31 (15min, 96点/天, 各区域 70080 点无缺失)",
+    "ramp_definition": "|P(t+1h)-P(t)| >= threshold, 窗口1h",
+    "threshold_note": "相对阈值 = 3.88% 各区域观测峰值(与DE原3000MW一致); DE=3000MW, BE=534MW, NL=735MW; 使爬坡稀有度跨区域可比",
+    "feature_sets": {
+      "CORE_37": "load+时相+负荷滞后/滚动/动量+气象",
+      "F48": "CORE+净负荷+风光出力+容量利用率(仅DE)",
+      "F46": "CORE+净负荷+风光出力(去容量利用率, DE/NL可得)",
+      "caveats": [
+        "NL 光伏出力约21%缺测(55296/70080), 以0填充(夜间/未上报视为0); 净负荷在缺测期被高估",
+        "BE 无风电/光伏/容量列, 仅能用 load+time+weather(无净负荷/新能源特征)",
+        "气象为单点(DE=Berlin, NL=Amsterdam, BE=Brussels), 未做全网加权",
+        "各区域时间轴统一为本地CET/CEST(DST规则一致)"
+      ]
+    }
+  },
+  "per_region": {
+    "DE": {
+      "peak_mw": 77305.4,
+      "threshold_mw": 3000.0,
+      "positive_rate": 0.2222,
+      "n_samples": 69984,
+      "split": {
+        "train": 48988,
+        "val": 10498,
+        "test": 10498
+      }
+    },
+    "NL": {
+      "peak_mw": 18942.0,
+      "threshold_mw": 735.1,
+      "positive_rate": 0.2069,
+      "n_samples": 69984,
+      "split": {
+        "train": 48988,
+        "val": 10498,
+        "test": 10498
+      }
+    },
+    "BE": {
+      "peak_mw": 13768.5,
+      "threshold_mw": 534.3,
+      "positive_rate": 0.1501,
+      "n_samples": 69984,
+      "split": {
+        "train": 48988,
+        "val": 10498,
+        "test": 10498
+      }
+    }
+  },
+  "experiments": {
+    "SELF_DE_48": {
+      "train_region": "DE",
+      "eval_region": "DE",
+      "n_features": 48,
+      "feature_set": "DE最大可得集",
+      "metrics": {
+        "auc": 0.9753970870415196,
+        "pr_auc": 0.9292376744363864,
+        "brier": 0.051656000925964125,
+        "f1": {
+          "threshold": 0.445,
+          "precision": 0.8337,
+          "recall": 0.8666,
+          "f1": 0.8498,
+          "tn": 7580,
+          "fp": 430,
+          "fn": 332,
+          "tp": 2156
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23699752333777863
+      }
+    },
+    "ZS_DE_NL": {
+      "train_region": "DE",
+      "eval_region": "NL",
+      "n_features": 46,
+      "feature_set": "NL可得集(去容量利用率)",
+      "metrics": {
+        "auc": 0.6225089355061921,
+        "pr_auc": 0.43424929214730357,
+        "brier": 0.19839519423636565,
+        "f1": {
+          "threshold": 0.362,
+          "precision": 0.9195,
+          "recall": 0.0897,
+          "f1": 0.1635,
+          "tn": 8060,
+          "fp": 19,
+          "fn": 2202,
+          "tp": 217
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23042484282720518
+      }
+    },
+    "SELF_NL": {
+      "train_region": "NL",
+      "eval_region": "NL",
+      "n_features": 46,
+      "feature_set": "NL自训练(同特征集)",
+      "metrics": {
+        "auc": 0.9759299714001377,
+        "pr_auc": 0.9387848876603956,
+        "brier": 0.049864240007658975,
+        "f1": {
+          "threshold": 0.5443,
+          "precision": 0.8442,
+          "recall": 0.869,
+          "f1": 0.8564,
+          "tn": 7691,
+          "fp": 388,
+          "fn": 317,
+          "tp": 2102
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23042484282720518
+      }
+    },
+    "ZS_DE_BE": {
+      "train_region": "DE",
+      "eval_region": "BE",
+      "n_features": 37,
+      "feature_set": "仅核心(load+time+weather)",
+      "metrics": {
+        "auc": 0.6722418697962176,
+        "pr_auc": 0.31680636758402647,
+        "brier": 0.16163721039369766,
+        "f1": {
+          "threshold": 0.5014,
+          "precision": 0.875,
+          "recall": 0.0038,
+          "f1": 0.0076,
+          "tn": 8657,
+          "fp": 1,
+          "fn": 1833,
+          "tp": 7
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.17527148028195846
+      }
+    },
+    "ZS_NL_BE": {
+      "train_region": "NL",
+      "eval_region": "BE",
+      "n_features": 37,
+      "feature_set": "仅核心(load+time+weather)",
+      "metrics": {
+        "auc": 0.8399185347554912,
+        "pr_auc": 0.5458594131780827,
+        "brier": 0.1153837133600643,
+        "f1": {
+          "threshold": 0.4408,
+          "precision": 0.6104,
+          "recall": 0.362,
+          "f1": 0.4545,
+          "tn": 8233,
+          "fp": 425,
+          "fn": 1174,
+          "tp": 666
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.17527148028195846
+      }
+    },
+    "SELF_BE": {
+      "train_region": "BE",
+      "eval_region": "BE",
+      "n_features": 37,
+      "feature_set": "BE自训练(同特征集)",
+      "metrics": {
+        "auc": 0.9338316786686351,
+        "pr_auc": 0.8011950896655101,
+        "brier": 0.07036451230982249,
+        "f1": {
+          "threshold": 0.4293,
+          "precision": 0.7617,
+          "recall": 0.6533,
+          "f1": 0.7033,
+          "tn": 8282,
+          "fp": 376,
+          "fn": 638,
+          "tp": 1202
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.17527148028195846
+      }
+    },
+    "SELF_DE_CORE": {
+      "train_region": "DE",
+      "eval_region": "DE",
+      "n_features": 37,
+      "feature_set": "DE自训练(仅核心,匹配BE)",
+      "metrics": {
+        "auc": 0.9738375663860688,
+        "pr_auc": 0.9250553990118534,
+        "brier": 0.05377541329304654,
+        "f1": {
+          "threshold": 0.5014,
+          "precision": 0.8493,
+          "recall": 0.8336,
+          "f1": 0.8414,
+          "tn": 7642,
+          "fp": 368,
+          "fn": 414,
+          "tp": 2074
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23699752333777863
+      }
+    },
+    "ZS_NL_DE": {
+      "train_region": "NL",
+      "eval_region": "DE",
+      "n_features": 46,
+      "feature_set": "NL可得集(去容量利用率)",
+      "metrics": {
+        "auc": 0.88774966280092,
+        "pr_auc": 0.7168924897899089,
+        "brier": 0.19061051772437954,
+        "f1": {
+          "threshold": 0.5443,
+          "precision": 0.4864,
+          "recall": 0.9039,
+          "f1": 0.6325,
+          "tn": 5635,
+          "fp": 2375,
+          "fn": 239,
+          "tp": 2249
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23699752333777863
+      }
+    },
+    "ZS_NL_DE_CORE": {
+      "train_region": "NL",
+      "eval_region": "DE",
+      "n_features": 37,
+      "feature_set": "仅核心",
+      "metrics": {
+        "auc": 0.8924330418969855,
+        "pr_auc": 0.7207899611058308,
+        "brier": 0.20793332429688713,
+        "f1": {
+          "threshold": 0.4408,
+          "precision": 0.4444,
+          "recall": 0.9325,
+          "f1": 0.6019,
+          "tn": 5109,
+          "fp": 2901,
+          "fn": 168,
+          "tp": 2320
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23699752333777863
+      }
+    },
+    "SELF_DE_46": {
+      "train_region": "DE",
+      "eval_region": "DE",
+      "n_features": 46,
+      "feature_set": "DE自训练(46集,匹配NL)",
+      "metrics": {
+        "auc": 0.9753438979009357,
+        "pr_auc": 0.9286847013893547,
+        "brier": 0.051723780739102145,
+        "f1": {
+          "threshold": 0.362,
+          "precision": 0.8006,
+          "recall": 0.8959,
+          "f1": 0.8456,
+          "tn": 7455,
+          "fp": 555,
+          "fn": 259,
+          "tp": 2229
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23699752333777863
+      }
+    }
+  },
+  "experiments_scale_normalized": {
+    "DE_NL": {
+      "src": "DE",
+      "dst": "NL",
+      "auc": 0.9044,
+      "pr_auc": 0.794,
+      "brier": 0.0971,
+      "n_feat": 46
+    },
+    "NL_DE": {
+      "src": "NL",
+      "dst": "DE",
+      "auc": 0.9323,
+      "pr_auc": 0.82,
+      "brier": 0.0946,
+      "n_feat": 46
+    },
+    "DE_self": {
+      "src": "DE",
+      "dst": "DE",
+      "auc": 0.9756,
+      "pr_auc": 0.9293,
+      "brier": 0.0516,
+      "n_feat": 48
+    },
+    "NL_self": {
+      "src": "NL",
+      "dst": "NL",
+      "auc": 0.9759,
+      "pr_auc": 0.9388,
+      "brier": 0.0499,
+      "n_feat": 46
+    }
+  },
+  "conclusions": {
+    "headline_zero_shot_auc": "DE->NL 零样本泛化: 原始MW AUC=0.6225 (弱), 归一化后 AUC=0.9044 (强)",
+    "asymmetry": "NL->DE 原始MW AUC=0.8877, NL->BE AUC=0.8399; 而 DE->NL=0.6225, DE->BE=0.6722 —— DE 作为源泛化弱, NL 作为源泛化强",
+    "mechanism": "弱泛化/方向不对称的元凶是「绝对尺度」: DE 电网约5倍于 NL (DE峰值77.3GW vs NL 18.9GW), 原始MW特征训练出的树分裂点对 NL 失配。将负荷/净负荷/风光按各区域峰值归一化(占比)后, DE->NL 从0.62升到0.90, NL->DE升到0.93, 两侧自训练仍~0.975",
+    "judgement": "跨电网爬坡规律真实存在, 但必须用「相对(标幺)单位」表达才可迁移; 直接用绝对MW会因电网规模差异而失效。 单一区域改多区域+标幺化, 模型更可信、更具说服力",
+    "honest_limitations": [
+      "归一化前的 DE->NL (0.62) 是诚实的基线: 直接拿 DE 模型(绝对MW)在 NL 上没意义",
+      "BE 仅负荷无新能源, 只能用核心37特征, 且正类占比(15%)低于DE/NL(21-22%), 可比性受限",
+      "零样本仍低于自训练(~0.97), 说明存在部分「电网特异」成分, 并非完全无损迁移",
+      "NL 光伏约21%缺测以0填充, 对净负荷特征有轻微污染"
+    ]
+  }
+}

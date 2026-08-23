@@ -155,3 +155,62 @@ export interface WindSolarSitesFile {
   generatedAt: string
   sites: WindSolarSite[]
 }
+
+// ---- 负荷爬坡事件概率预警（多区域 · 跨电网零样本泛化） ----
+
+export interface RampDay {
+  t: string[] // 15min 时间戳（本地时）
+  prob: number[] // 模型预测「未来 1h 发生爬坡」的概率 0-1
+  label: number[] // 真实爬坡事件标签 0/1
+  dP_mw: (number | null)[] // 未来 1h 负荷变化量（MW）
+  load: (number | null)[] // 实际负荷（MW）
+}
+
+export interface RampSeriesMeta {
+  points_per_day: number
+  ramp_window_hours: number
+  window_start: string
+  window_end: string
+  n_days: number
+  n_points: number
+  feature_note?: string
+  load_field?: string
+}
+
+export interface RampSeriesFile {
+  region: string
+  model: string
+  source_exp?: string
+  metas: RampSeriesMeta
+  days: Record<string, RampDay> // date -> 当日 96 点
+}
+
+export interface ModelCompareMetric {
+  auc?: number
+  pr_auc?: number
+  brier?: number
+  f1_at_best?: number
+  best_threshold?: number
+  delta_auc?: number
+  delta_t_lgb?: unknown
+}
+
+export interface ModelCompareFile {
+  note?: string
+  test_samples?: number
+  threshold?: number
+  large_threshold?: number
+  best_model_overall?: string
+  any: Record<string, ModelCompareMetric | Record<string, unknown>>
+  up?: Record<string, ModelCompareMetric | Record<string, unknown>>
+  down?: Record<string, ModelCompareMetric | Record<string, unknown>>
+}
+
+/** 跨区域泛化（松结构：研究侧指标，前端只取需要的字段） */
+export interface CrossRegionFile {
+  methodology?: Record<string, unknown>
+  per_region?: Record<string, { peak_mw?: number; threshold_mw?: number; positive_rate?: number; n_samples?: number }>
+  experiments?: Record<string, { train_region?: string; eval_region?: string; n_features?: number; metrics?: { auc?: number; pr_auc?: number; brier?: number } }>
+  experiments_scale_normalized?: Record<string, { src: string; dst: string; auc: number; pr_auc: number; brier: number; n_feat: number }>
+  conclusions?: Record<string, unknown>
+}

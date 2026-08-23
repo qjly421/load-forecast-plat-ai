@@ -1,0 +1,55 @@
+{
+  "note": "同一 test 集、同一评估口径（AUC/PR-AUC/Brier/最优阈值F1/校准）。LGB=stage1 metrics.json，Transformer=stage2 transformer_metrics.json。",
+  "test_samples": 10498,
+  "threshold": 3000.0,
+  "large_threshold": 5000.0,
+  "any": {
+    "lightgbm": {
+      "auc": 0.9752463761134595,
+      "pr_auc": 0.9283049119878805,
+      "brier": 0.05183580145545,
+      "f1_at_best": 0.8474,
+      "best_threshold": 0.4079
+    },
+    "transformer": {
+      "auc": 0.9723050668176033,
+      "pr_auc": 0.9205764688031707,
+      "brier": 0.05791614513898784,
+      "f1_at_best": 0.8294,
+      "best_threshold": 0.5038
+    },
+    "delta_t_lgb": {
+      "auc": -0.0029,
+      "pr_auc": -0.0077,
+      "brier": 0.0061,
+      "f1_at_best": -0.018
+    }
+  },
+  "up": {
+    "lightgbm": {
+      "auc": 0.9890700874752671,
+      "pr_auc": 0.9306987270805568,
+      "brier": 0.025402162580700435
+    },
+    "transformer": {
+      "auc": 0.986293974407836,
+      "pr_auc": 0.9207156350950731,
+      "brier": 0.028965215869435672
+    },
+    "delta_auc": -0.0028
+  },
+  "down": {
+    "lightgbm": {
+      "auc": 0.9898557244024724,
+      "pr_auc": 0.9346674902832359,
+      "brier": 0.025960709596262628
+    },
+    "transformer": {
+      "auc": 0.9880186452546682,
+      "pr_auc": 0.9214071675694925,
+      "brier": 0.029330315558335138
+    },
+    "delta_auc": -0.0018
+  },
+  "best_model_overall": "lightgbm"
+}
