@@ -15,7 +15,7 @@ const C = {
   tooltipBd: 'hsl(217 33% 20%)',
 }
 const COLOR: Record<string, string> = { lgb: 'hsl(45 95% 60%)', tcn: '#22d3ee', transformer: '#a78bfa' }
-const TIP = { contentStyle: { background: C.tooltipBg, border: `1px solid ${C.tooltipBd}`, borderRadius: 8, fontSize: 12 } }
+const TIP = { contentStyle: { background: C.tooltipBg, border: `1px solid ${C.tooltipBd}`, borderRadius: 8, fontSize: 12 }, itemStyle: { color: '#e2e8f0' }, labelStyle: { color: '#94a3b8' } }
 const axisTick = { fontSize: 10, fill: C.axis }
 const fmt = (n: number) => n.toLocaleString()
 

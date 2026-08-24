@@ -19,7 +19,7 @@ const C = {
   axis: 'hsl(215 20% 58%)',
   white: 'hsl(210 40% 88%)',
 }
-const TIP = { contentStyle: { background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 } }
+const TIP = { contentStyle: { background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }, itemStyle: { color: '#e2e8f0' }, labelStyle: { color: '#94a3b8' } }
 const axisTick = { fontSize: 10, fill: C.axis }
 
 type Season = 'winter' | 'summer'

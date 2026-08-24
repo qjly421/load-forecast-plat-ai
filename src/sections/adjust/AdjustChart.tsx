@@ -106,6 +106,8 @@ export default function AdjustChart({
               borderRadius: 8,
               fontSize: 12,
             }}
+            itemStyle={{ color: '#e2e8f0' }}
+            labelStyle={{ color: '#94a3b8' }}
             labelFormatter={(s: number) => `时刻 ${slotTime(Number(s))}（slot ${s}）`}
             formatter={(value: number, name: string) => {
               const labels: Record<string, string> = {

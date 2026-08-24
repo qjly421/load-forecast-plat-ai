@@ -87,6 +87,8 @@ export default function WeatherChart({ day, date }: WeatherChartProps) {
                 borderRadius: 8,
                 fontSize: 11,
               }}
+              itemStyle={{ color: '#e2e8f0' }}
+              labelStyle={{ color: '#94a3b8' }}
               labelFormatter={(s: number) => slotTime(Number(s))}
               formatter={(v: number, name: string) => {
                 const map: Record<string, [string, string]> = {

@@ -259,6 +259,7 @@ export default function Home() {
                   tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={40} />
                 <Tooltip
                   contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                    itemStyle={{ color: 'hsl(215 20% 82%)' }} labelStyle={{ color: 'hsl(215 20% 66%)' }}
                   formatter={(v: number, name: string) => {
                     const m: Record<string, [string, string]> = {
                       max: ['日最大负荷', ' MW'], min: ['日最小负荷', ' MW'],
@@ -296,6 +297,7 @@ export default function Home() {
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'hsl(215 20% 58%)' }} tickLine={false} axisLine={false} />
                   <YAxis domain={[0, 'dataMax']} tick={{ fontSize: 10, fill: 'hsl(215 20% 58%)' }} tickLine={false} axisLine={false} unit="%" width={36} />
                   <Tooltip contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                    itemStyle={{ color: 'hsl(215 20% 82%)' }} labelStyle={{ color: 'hsl(215 20% 66%)' }}
                     formatter={(v: number, name: string) => [`${v}%`, name === 'mape' ? 'MAPE' : name]} />
                   <Bar dataKey="mape" radius={[4, 4, 0, 0]} barSize={36}>
                     {modelLeader.map((r) => (
@@ -320,6 +322,7 @@ export default function Home() {
                   <YAxis yAxisId="l" domain={[0, 'dataMax']} tick={{ fontSize: 10, fill: 'hsl(215 20% 58%)' }} tickLine={false} axisLine={false} width={36} />
                   <YAxis yAxisId="r" orientation="right" domain={[0, 110]} tick={{ fontSize: 10, fill: 'hsl(215 20% 58%)' }} tickLine={false} axisLine={false} width={36} />
                   <Tooltip contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                    itemStyle={{ color: 'hsl(215 20% 82%)' }} labelStyle={{ color: 'hsl(215 20% 66%)' }}
                     formatter={(v: number, name: string) => [`${name === 'mape' ? v.toFixed(2) + '%' : v.toFixed(1) + '%'}`, name === 'mape' ? 'MAPE' : 'PICP']} />
                   <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v: string) => <span style={{ color: 'hsl(215 20% 70%)' }}>{v === 'mape' ? 'MAPE %（左轴）' : 'PICP %（右轴）'}</span>} />
                   <Bar yAxisId="l" dataKey="mape" name="mape" fill="#22d3ee" radius={[4, 4, 0, 0]} barSize={26} />
@@ -387,6 +390,7 @@ export default function Home() {
                   <YAxis yAxisId="p" orientation="right" tick={{ fontSize: 10, fill: 'hsl(199 90% 60%)' }} tickLine={false} axisLine={false} unit="mm" width={40} />
                   <Tooltip
                     contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                    itemStyle={{ color: 'hsl(215 20% 82%)' }} labelStyle={{ color: 'hsl(215 20% 66%)' }}
                     formatter={(v: number, name: string) => {
                       const m: Record<string, [string, string]> = { prec: ['日降水', ' mm'], temp: ['日均温', ' °C'], tempMax: ['日最高温', ' °C'] }
                       const [label, unit] = m[name] ?? [name, '']
@@ -423,6 +427,7 @@ export default function Home() {
                       ))}
                     </Pie>
                     <Tooltip contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                    itemStyle={{ color: 'hsl(215 20% 82%)' }} labelStyle={{ color: 'hsl(215 20% 66%)' }}
                       formatter={(v: number, name: string) => [`${v.toLocaleString()} 万千瓦`, name]} />
                   </PieChart>
                 </ResponsiveContainer>
