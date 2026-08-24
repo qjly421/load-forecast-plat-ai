@@ -33,9 +33,9 @@ const axisLine = { stroke: 'hsl(217 33% 18%)' }
 export type RampRegion = 'nl' | 'be' | 'sd'
 
 const REGION_LABEL: Record<RampRegion, { name: string; peak: string; note: string }> = {
-  nl: { name: '荷兰 NL', peak: '≈18.9 GW', note: 'DE 训练模型 · 零样本预警' },
-  be: { name: '比利时 BE', peak: '≈13.8 GW', note: 'DE 训练模型 · 零样本预警（无新能源）' },
-  sd: { name: '山东 SD', peak: '≈129.7 GW', note: 'DE 训练模型 · 零样本预警（特大电网）' },
+  nl: { name: '荷兰 NL', peak: '≈19.6 GW', note: 'DE 训练模型 · 零样本预警' },
+  be: { name: '比利时 BE', peak: '≈13.2 GW', note: 'DE 训练模型 · 零样本预警（含新能源）' },
+  sd: { name: '山东 SD', peak: '≈107 GW', note: 'DE 训练模型 · 零样本预警（特大电网）' },
 }
 
 export default function RampForecast() {
@@ -165,7 +165,7 @@ export default function RampForecast() {
               <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-400">创新点</Badge>
             </h3>
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-              爬坡 = 未来 1h 内净负荷变化超过阈值（新能源高渗透下电网调度的关键风险）。模型在同一口径下于<b className="text-foreground/80">德 / 荷 / 比利时 / 中国山东的中欧不同规模电网间跨区域迁移</b>——用一个电网训练的模型在另一个电网零样本预警爬坡，按各区域峰值<b className="text-emerald-400">标幺化</b>后跨电网 AUC 0.83~0.93。
+              爬坡 = 未来 1h 内净负荷变化超过阈值（新能源高渗透下电网调度的关键风险）。模型在同一口径下于<b className="text-foreground/80">德 / 荷 / 比利时 / 中国山东的中欧不同规模电网间跨区域迁移</b>——用一个电网训练的模型在另一个电网零样本预警爬坡，按各区域峰值<b className="text-emerald-400">标幺化</b>后跨电网 AUC 0.73~0.95。
             </p>
           </div>
           <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
@@ -267,7 +267,7 @@ export default function RampForecast() {
                 </ResponsiveContainer>
               </div>
               <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
-                把<b className="text-emerald-300">按各区域峰值标幺化</b>后的爬坡规律，<b className="text-cyan-300">从欧洲电网跨洲推广到中国山东（12.9万MW 特大电网）</b>：DE→SD 标幺 AUC <b className="text-cyan-300">0.83</b>，各区域自训练达 <b className="text-emerald-300">0.97~0.98</b>，均远超随机（0.5）。这说明<b>「爬坡是峰值的比例事件、其规律跨洲可迁移」</b>——用一个小电网训练的模型，能在另一个规模电网（含中国）零样本预测爬坡，具备通用性。
+                把<b className="text-emerald-300">按各区域峰值标幺化</b>后的爬坡规律，<b className="text-cyan-300">从欧洲电网跨洲推广到中国山东（10.7万MW 特大电网）</b>：DE→SD 标幺 AUC <b className="text-cyan-300">0.73</b>，各区域自训练达 <b className="text-emerald-300">0.94~0.98</b>，均远超随机（0.5）。这说明<b>「爬坡是峰值的比例事件、其规律跨洲可迁移」</b>——用一个小电网训练的模型，能在另一个规模电网（含中国）零样本预测爬坡，具备通用性。
               </p>
             </div>
 
@@ -294,14 +294,14 @@ export default function RampForecast() {
                 ))}
               </div>
               <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
-                两种模型在同口径下<b className="text-cyan-300">多元互证</b>：当前基准 LightGBM 更优，作为主预警模型；Transformer 代表<b className="text-violet-300">序列深度学习</b>方向，同步纳入形成「传统模型 + 深度学习」互补。数据集：OPSD 德/荷/比利时 2018-2019 + Open-Meteo 气象，窗口 1h。
+                两种模型在同口径下<b className="text-cyan-300">多元互证</b>：当前基准 LightGBM 更优，作为主预警模型；Transformer 代表<b className="text-violet-300">序列深度学习</b>方向，同步纳入形成「传统模型 + 深度学习」互补。该子面板作架构路线对照，验证树模型与序列模型两条技术路线（与主预警曲线共用同一爬坡定义与阈值口径）。
               </p>
             </div>
           </div>
 
           {/* 底部口径 */}
           <p className="rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%；特征 48 维多因素（负荷滞后/滚动/波动 + 气象 + 新能源出力）；模型 LightGBM（DE 训练 → 对 NL / BE / SD 零样本）；展示时段 2019-11-04~11-24（欧洲，21 天）与 2026-06-23~07-13（山东，21 天），15min · 96 点/天。来源：OPSD 欧洲负荷序列 + 山东省实际负荷 + Open-Meteo 历史气象。
+            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%；特征 44 维多因素（负荷滞后/滚动/波动 + 气象 + 风光出力）；模型 LightGBM（DE 训练 → 对 NL / BE / SD 零样本）；展示时段 2025-06-01~06-30（欧，30 天）与 2025-06-05~06-30（山东，26 天），15min · 96 点/天。来源：Fraunhofer Energy-Charts 2024-2025 欧洲负荷序列 + 山东省实际负荷 + Open-Meteo 历史气象。
           </p>
         </CollapsibleContent>
       </Collapsible>
