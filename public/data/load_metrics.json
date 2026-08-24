@@ -43,6 +43,10 @@
       "name": "LightGBM"
     },
     {
+      "id": "tcn",
+      "name": "TCN"
+    },
+    {
       "id": "hgb",
       "name": "HistGradientBoost"
     },
@@ -66,6 +70,13 @@
         "picp": 96.8,
         "mpiw": 12909.0,
         "rmse": 2979.0,
+        "peak_mw": 107087.0
+      },
+      "tcn": {
+        "mape": 4.32,
+        "picp": 86.2,
+        "mpiw": 13890.0,
+        "rmse": 4693.0,
         "peak_mw": 107087.0
       },
       "hgb": {
@@ -105,6 +116,13 @@
         "rmse": 3227.0,
         "peak_mw": 71795.0
       },
+      "tcn": {
+        "mape": 6.78,
+        "picp": 95.8,
+        "mpiw": 18856.0,
+        "rmse": 4595.0,
+        "peak_mw": 71795.0
+      },
       "hgb": {
         "mape": 3.74,
         "picp": 95.3,
@@ -142,6 +160,13 @@
         "rmse": 437.0,
         "peak_mw": 11513.0
       },
+      "tcn": {
+        "mape": 4.56,
+        "picp": 96.4,
+        "mpiw": 2426.0,
+        "rmse": 536.0,
+        "peak_mw": 11513.0
+      },
       "hgb": {
         "mape": 3.33,
         "picp": 95.6,
@@ -177,6 +202,13 @@
         "picp": 97.0,
         "mpiw": 2518.0,
         "rmse": 473.0,
+        "peak_mw": 15204.0
+      },
+      "tcn": {
+        "mape": 6.22,
+        "picp": 91.9,
+        "mpiw": 3147.0,
+        "rmse": 901.0,
         "peak_mw": 15204.0
       },
       "hgb": {

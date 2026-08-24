@@ -43,6 +43,10 @@
       "name": "LGB"
     },
     {
+      "id": "tcn",
+      "name": "TCN"
+    },
+    {
       "id": "hgb",
       "name": "HistGB"
     },

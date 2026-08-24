@@ -334,7 +334,7 @@ export default function Adjust() {
 
           {/* 系统定位（页脚能力概述） */}
           <footer className="rounded-xl border border-border/60 bg-card/30 px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-            面向电力调度的负荷预测研判工作台：AI 全月预测底稿 · 多模型对比（LGB / HistGB / RF / ET / Linear）·
+            面向电力调度的负荷预测研判工作台：AI 全月预测底稿 · 多模型对比（LGB / TCN / HistGB / RF / ET / Linear）·
             相似日 / 气象 / 分时段人工修正 · 概率区间 · 操作回放与导出。
           </footer>
         </main>
