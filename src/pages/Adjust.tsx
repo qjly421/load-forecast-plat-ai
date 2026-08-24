@@ -95,6 +95,17 @@ export default function Adjust() {
   // ---- 派生数据 ----
   const dayFc = forecast?.[targetDay]?.[String(dayplus)] ?? null
   const dayWx = weather?.[targetDay] ?? null
+  // 目标日气象摘要（供相似日面板作选择参照）
+  const targetWx = useMemo(() => {
+    if (!dayWx || !dayWx.temp.length) return null
+    const sum = (a: number[]) => a.reduce((s, v) => s + v, 0)
+    return {
+      temperature_2m_mean: sum(dayWx.temp) / dayWx.temp.length,
+      temperature_2m_max: Math.max(...dayWx.temp),
+      shortwave_radiation_mean: sum(dayWx.rad) / dayWx.rad.length,
+      precipitation_sum: dayWx.prec ? sum(dayWx.prec) : 0,
+    }
+  }, [dayWx])
   const prevDay = useMemo(() => {
     if (!weather) return null
     const d = new Date(targetDay)
@@ -323,7 +334,8 @@ export default function Adjust() {
                 onChartClick={onChartClick}
               />
             </div>
-            <SimilarPanel days={simDays} selected={simDay} onSelect={setSimDay} onApply={applySimilar} />
+            <SimilarPanel days={simDays} selected={simDay} onSelect={setSimDay} onApply={applySimilar}
+              targetDay={targetDay} targetWeather={targetWx} />
           </div>
 
           {/* 下区 */}

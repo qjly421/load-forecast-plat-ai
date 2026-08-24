@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { History, Blend, Thermometer, Sun, CloudRain } from 'lucide-react'
+import { History, Blend, Thermometer, Sun, CloudRain, Target } from 'lucide-react'
 import type { SimilarDay } from '@/types/adjust'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
@@ -11,11 +11,20 @@ const INFO = {
   similar: '历史上与目标日「负荷形状 + 天气」最接近的若干天，可参考其走势，用相似日形状修正当天预测。',
 }
 
+interface TargetWx {
+  temperature_2m_mean: number
+  temperature_2m_max: number
+  shortwave_radiation_mean: number
+  precipitation_sum: number
+}
+
 interface SimilarPanelProps {
   days: SimilarDay[]
   selected: SimilarDay | null
   onSelect: (d: SimilarDay | null) => void
   onApply: (d: SimilarDay, blend: number) => void
+  targetDay?: string
+  targetWeather?: TargetWx | null
 }
 
 const DOW_CN: Record<string, string> = {
@@ -23,7 +32,7 @@ const DOW_CN: Record<string, string> = {
   Friday: '周五', Saturday: '周六', Sunday: '周日',
 }
 
-export default function SimilarPanel({ days, selected, onSelect, onApply }: SimilarPanelProps) {
+export default function SimilarPanel({ days, selected, onSelect, onApply, targetDay, targetWeather }: SimilarPanelProps) {
   const [blend, setBlend] = useState(50)
 
   return (
@@ -34,8 +43,29 @@ export default function SimilarPanel({ days, selected, onSelect, onApply }: Simi
           <h3 className="text-sm font-semibold">TopK 相似期</h3>
           <InfoTip title="相似日 / TopK相似期">{INFO.similar}</InfoTip>
         </div>
-        <span className="text-[10px] text-muted-foreground">DTW负荷 0.6 + 天气 0.4</span>
+        <span className="text-[10px] text-muted-foreground">负荷形状 + 气温 + 降水</span>
       </div>
+
+      {targetDay && targetWeather ? (
+        <div className="mb-3 rounded-lg border border-dashed border-violet-400/30 bg-violet-400/5 px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-violet-300">
+            <Target className="h-3 w-3" />
+            目标日 {targetDay}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-0.5">
+              <Thermometer className="h-3 w-3 text-orange-400" />均温 {targetWeather.temperature_2m_mean.toFixed(1)}°C
+            </span>
+            <span className="flex items-center gap-0.5">
+              <Thermometer className="h-3 w-3 text-red-400" />最高 {targetWeather.temperature_2m_max.toFixed(1)}°C
+            </span>
+            <span className="flex items-center gap-0.5">
+              <CloudRain className="h-3 w-3 text-sky-400" />降水 {targetWeather.precipitation_sum.toFixed(1)}mm
+            </span>
+            <span className="ml-auto text-[10px] text-muted-foreground/70">参照上方情况挑相似日</span>
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-1.5">
         {days.map((d) => {
