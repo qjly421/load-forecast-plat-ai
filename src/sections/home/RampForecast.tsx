@@ -226,10 +226,10 @@ export default function RampForecast() {
           {/* KPI 四卡 */}
           {kpi && (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              <MiniKpi label="本日峰值预测概率" value={`${(kpi.maxProb * 100).toFixed(0)}%`} icon={<Zap className="h-3 w-3 text-amber-400" />} />
-              <MiniKpi label="最大爬坡等级" value={SEV_NAME[kpi.maxSev]} sub={`${kpi.maxSev ? `${kpi.maxDir}坡 · ${SEV_NAME[kpi.maxSev]}` : '当日无爬坡'}`} icon={<AlertTriangle className={kpi.maxSev === 3 ? 'h-3 w-3 text-rose-400' : kpi.maxSev === 2 ? 'h-3 w-3 text-amber-400' : 'h-3 w-3 text-sky-400'} />} />
-              <MiniKpi label="真实爬坡事件" value={`${kpi.events}`} unit="个" sub={`一般 ${kpi.sCount[0]} · 较大 ${kpi.sCount[1]} · 重大 ${kpi.sCount[2]}`} icon={<AlertTriangle className="h-3 w-3 text-rose-400" />} />
-              <MiniKpi label="事件覆盖（召回）" value={kpi.events ? `${kpi.coverage}%` : '—'} sub={kpi.events ? `预警 ${kpi.warns} 段 · 命中 ${kpi.hitSegs} · 精确 ${kpi.precision}%` : '当日无真实爬坡'} icon={<AlertTriangle className="h-3 w-3 text-emerald-400" />} />
+              <MiniKpi label="本日峰值预测概率" value={`${(kpi.maxProb * 100).toFixed(0)}%`} icon={<Zap className="h-3 w-3 text-amber-400" />} tip={<>模型对当日<b>任一时点</b>「未来 1 小时是否发生爬坡」给出的<b>最高</b>概率估计（0~100%）。<b className="text-amber-300">概率只答「会不会」</b>，不代表爬坡幅度大不大（幅度由「最大爬坡等级」体现）；且爬坡是稀有事件，单点概率天然偏低属正常。</>} />
+              <MiniKpi label="最大爬坡等级" value={SEV_NAME[kpi.maxSev]} sub={`${kpi.maxSev ? `${kpi.maxDir}坡 · ${SEV_NAME[kpi.maxSev]}` : '当日无爬坡'}`} icon={<AlertTriangle className={kpi.maxSev === 3 ? 'h-3 w-3 text-rose-400' : kpi.maxSev === 2 ? 'h-3 w-3 text-amber-400' : 'h-3 w-3 text-sky-400'} />} tip={<>按当天所有真实爬坡事件的 |ΔP| 占区域峰值幅度 分出的<b>最高档</b>：<b className="text-sky-300">一般 ≥3.88% 峰值</b> · <b className="text-amber-300">较大 ≥6%</b> · <b className="text-rose-300">重大 ≥8%</b>。与「概率」互补——概率答会不会、这条答<b>有多大</b>；当天无真实爬坡则显示「当日无爬坡」。</>} />
+              <MiniKpi label="真实爬坡事件" value={`${kpi.events}`} unit="个" sub={`一般 ${kpi.sCount[0]} · 较大 ${kpi.sCount[1]} · 重大 ${kpi.sCount[2]}`} icon={<AlertTriangle className="h-3 w-3 text-rose-400" />} tip={<>当天被判定为「爬坡」的 15 分钟点数（|ΔP(t+1h)−P(t)| ≥ 3.88% 区域峰值），每个点算一次爬坡、分上/下坡。<b>副标</b>是这些事件按幅度分级（一般/较大/重大）后的数量分布。注意它反映的是<b>真实发生的爬坡次数</b>，与「是否成功预警」（事件覆盖）是两回事——事件多≠预警得好。</>} />
+              <MiniKpi label="事件覆盖（召回）" value={kpi.events ? `${kpi.coverage}%` : '—'} sub={kpi.events ? `预警 ${kpi.warns} 段 · 命中 ${kpi.hitSegs} · 精确 ${kpi.precision}%` : '当日无真实爬坡'} icon={<AlertTriangle className="h-3 w-3 text-emerald-400" />} tip={<>预警时效力的<b>核心指标</b>：当天真实爬坡事件里，有多少比例落在任一预警窗口（概率 ≥50%）内。<b>覆盖越高=越少漏报</b>；副标「精确」= 预警窗口内真事件占比（越高=误报越少）。两者常此消彼长，对爬坡这类稀有事件<b>优先看覆盖（别漏）</b>。</>} />
             </div>
           )}
 
@@ -360,15 +360,16 @@ function RampTip({ active, payload, label: _label }: any) {
   )
 }
 
-function MiniKpi({ label, value, unit, sub, icon }: {
-  label: string; value: string; unit?: string; sub?: string; icon?: React.ReactNode
+function MiniKpi({ label, value, unit, sub, icon, tip }: {
+  label: string; value: string; unit?: string; sub?: string; icon?: React.ReactNode; tip?: React.ReactNode
 }) {
   return (
     <div className="rounded-lg border border-border/60 bg-card/30 px-2.5 py-2">
       <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
         {icon}
-        <span>{label}</span>
-        {sub && <span className="ml-auto text-[9px] text-muted-foreground/70">{sub}</span>}
+        <span className="truncate">{label}</span>
+        {tip && <InfoTip title={label}>{tip}</InfoTip>}
+        {sub && <span className="ml-auto truncate text-[9px] text-muted-foreground/70">{sub}</span>}
       </div>
       <div className="mt-0.5 font-mono text-[15px] font-semibold text-foreground">
         {value}{unit && <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">{unit}</span>}
