@@ -37,20 +37,13 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
 
   return (
     <div className="card-glow flex h-full flex-col rounded-xl p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <History className="h-4 w-4 text-violet-400" />
-          <h3 className="text-sm font-semibold">TopK 相似期</h3>
-          <InfoTip title="相似日 / TopK相似期">{INFO.similar}</InfoTip>
-        </div>
-        <span className="text-[10px] text-muted-foreground">负荷形状 + 气温 + 降水</span>
-      </div>
-
+      {/* 目标日天气参照（最上方） */}
       {targetDay && targetWeather ? (
         <div className="mb-3 rounded-lg border border-dashed border-violet-400/30 bg-violet-400/5 px-2.5 py-1.5">
           <div className="flex items-center gap-1.5 text-[10px] font-semibold text-violet-300">
             <Target className="h-3 w-3" />
             目标日 {targetDay}
+            <span className="ml-auto text-[10px] font-normal text-muted-foreground/70">参照下方情况挑相似日</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-0.5">
@@ -62,12 +55,21 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
             <span className="flex items-center gap-0.5">
               <CloudRain className="h-3 w-3 text-sky-400" />降水 {targetWeather.precipitation_sum.toFixed(1)}mm
             </span>
-            <span className="ml-auto text-[10px] text-muted-foreground/70">参照上方情况挑相似日</span>
           </div>
         </div>
       ) : null}
 
-      <div className="space-y-1.5">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <History className="h-4 w-4 text-violet-400" />
+          <h3 className="text-sm font-semibold">TopK 相似期</h3>
+          <InfoTip title="相似日 / TopK相似期">{INFO.similar}</InfoTip>
+        </div>
+        <span className="text-[10px] text-muted-foreground">负荷形状 + 气温 + 降水</span>
+      </div>
+
+      {/* 相似日列表：可滚动，避免 Top10 撑太长 */}
+      <div className="min-h-0 max-h-[300px] flex-1 space-y-1.5 overflow-y-auto pr-1">
         {days.map((d) => {
           const active = selected?.date === d.date
           const ws = d.weather_summary
