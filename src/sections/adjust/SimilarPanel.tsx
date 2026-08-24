@@ -68,8 +68,8 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
         <span className="text-[10px] text-muted-foreground">负荷形状 + 气温 + 降水</span>
       </div>
 
-      {/* 相似日列表：可滚动，避免 Top10 撑太长 */}
-      <div className="min-h-0 max-h-[300px] flex-1 space-y-1.5 overflow-y-auto pr-1">
+      {/* 相似日列表：可滚动，填满标题与修正框之间，避免 Top10 撑长或留空 */}
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {days.map((d) => {
           const active = selected?.date === d.date
           const ws = d.weather_summary
