@@ -261,6 +261,8 @@ export interface LoadMetricsFile {
   models: LoadModelMeta[]
   // dataset -> model -> 指标
   metrics: Record<string, Record<string, LoadMetricRow>>
+  // 官方日前预测纯基线 MAPE（无区间）；null 表示该数据集无可用官方数据
+  official?: Record<string, number | null>
 }
 
 /** 深度基线对比（负荷预测 TCN vs Transformer）：参数 / 训练耗时 / 各提前期 MAPE/PICP */
@@ -276,6 +278,15 @@ export interface DeepCostModel {
 export interface DeepCostFile {
   models: DeepCostModel[]
 }
+
+/** 真实净负荷（负荷−光伏−风电），每数据日 96 点 */
+export interface NetLoadDay {
+  load: number[]
+  net_load: number[]
+  solar: number[]
+  wind: number[]
+}
+export type NetLoadFile = Record<string, NetLoadDay>
 
 /** 跨区域泛化（松结构：研究侧指标，前端只取需要的字段） */
 export interface CrossRegionFile {

@@ -14,6 +14,7 @@ import {
 } from '@/lib/data-service'
 import EnergyMap from '@/sections/home/EnergyMap'
 import TimeseriesFeatures from '@/sections/home/TimeseriesFeatures'
+import NetLoadCard from '@/sections/home/NetLoadCard'
 import DeepCostCompare from '@/sections/home/DeepCostCompare'
 import type { ForecastFile, WeatherFile, LoadMetricsFile, InstalledCapacityFile } from '@/types/adjust'
 import { cn } from '@/lib/utils'
@@ -66,9 +67,12 @@ export default function Home() {
     if (!reg || !ds) return []
     const rows = reg.metrics[ds]
     if (!rows) return []
-    return reg.models
-      .filter((m) => rows[m.id])
-      .map((m) => ({ id: m.id, name: m.name, ...rows[m.id] }))
+    const out: { id: string; name: string; mape: number; rmse: number; picp: number; mpiw: number; peak_mw: number }[] =
+      reg.models.filter((m) => rows[m.id]).map((m) => ({ id: m.id, name: m.name, ...rows[m.id] }))
+    // 官方日前预测纯基线（MAPE，无区间），只有在有值的数据集才展示
+    const off = reg.official?.[ds]
+    if (off != null) out.push({ id: 'official', name: '官方日前', mape: off, rmse: 0, picp: 0, mpiw: 0, peak_mw: 0 })
+    return out
   }, [reg, ds])
 
   // 各数据集在当前模型下的指标（数据集对比）
@@ -301,7 +305,7 @@ export default function Home() {
                     formatter={(v: number, name: string) => [`${v}%`, name === 'mape' ? 'MAPE' : name]} />
                   <Bar dataKey="mape" radius={[4, 4, 0, 0]} barSize={36}>
                     {modelLeader.map((r) => (
-                      <Cell key={r.id} fill={r.id === model ? '#22d3ee' : 'hsl(215 25% 42%)'} />
+                      <Cell key={r.id} fill={r.id === 'official' ? '#f59e0b' : r.id === model ? '#22d3ee' : 'hsl(215 25% 42%)'} />
                     ))}
                   </Bar>
                 </ComposedChart>
@@ -354,12 +358,12 @@ export default function Home() {
               <tbody>
                 {modelLeader.map((r) => (
                   <tr key={r.id} className="border-t border-border/50">
-                    <td className="py-1.5 pr-3">{r.name}</td>
+                    <td className="py-1.5 pr-3 flex items-center gap-1">{r.name}{r.id === 'official' && <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 px-1.5 text-[9px] text-amber-300">官方基线</Badge>}</td>
                     <td className="py-1.5 pr-3 text-foreground">{r.mape.toFixed(2)}</td>
-                    <td className="py-1.5 pr-3">{Math.round(r.rmse).toLocaleString()}</td>
-                    <td className="py-1.5 pr-3">{r.picp.toFixed(1)}</td>
-                    <td className="py-1.5 pr-3">{Math.round(r.mpiw).toLocaleString()}</td>
-                    <td className="py-1.5">{r.peak_mw.toLocaleString()}</td>
+                    <td className="py-1.5 pr-3">{r.id === 'official' ? '—' : Math.round(r.rmse).toLocaleString()}</td>
+                    <td className="py-1.5 pr-3">{r.id === 'official' ? '—（无区间）' : r.picp.toFixed(1)}</td>
+                    <td className="py-1.5 pr-3">{r.id === 'official' ? '—' : Math.round(r.mpiw).toLocaleString()}</td>
+                    <td className="py-1.5">{r.id === 'official' ? '—' : r.peak_mw.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -370,6 +374,9 @@ export default function Home() {
         {/* 数据可视化特征分析：随数据集切换（四数据集皆有）；周期/小时关联性见其内部子卡 */}
         <TimeseriesFeatures days={days} fcLgb={fc} daily={daily} regionName={dsMeta.name} monthLabel={dsMeta.test_start.slice(0, 7)} isSd={isSd} />
         {isSd && <DeepCostCompare />}
+
+        {/* 真实净负荷：仅欧洲三数据集（Energy-Charts 提供光/风，可算 负荷−光伏−风电） */}
+        {!isSd && <NetLoadCard dataset={ds} />}
 
         {/* 山东专属：气象趋势 + 装机结构 + 地图 */}
         {isSd && weather && (
