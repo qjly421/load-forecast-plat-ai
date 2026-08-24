@@ -108,14 +108,17 @@ export default function Home() {
           ? Math.round((d1.atemp.reduce((s, v) => s + v, 0) / d1.atemp.length) * 10) / 10
           : 0
         const tempMax = d1?.atemp?.length ? Math.round(Math.max(...d1.atemp) * 10) / 10 : 0
+        const prec = weather?.[d]?.prec?.length
+          ? Math.round(weather[d].prec.reduce((s, v) => s + v, 0) * 10) / 10
+          : 0
         return {
           date: d.slice(5),
           fullDate: d,
           max, min, mean, cenMean, centerMax,
-          temp, tempMax, prec: 0,
+          temp, tempMax, prec,
         }
       })
-  }, [fc])
+  }, [fc, weather])
 
   const extremes = useMemo(() => {
     if (!daily.length) return null
@@ -380,9 +383,19 @@ export default function Home() {
                 <ComposedChart data={daily} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 33% 15%)" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(215 20% 58%)' }} tickLine={false} axisLine={false} interval={1} />
-                  <YAxis yAxisId="t" domain={[0, 40]} tick={{ fontSize: 10, fill: 'hsl(25 90% 60%)' }} tickLine={false} axisLine={false} unit="°" width={32} />
-                  <Tooltip contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }} />
-                  <Line yAxisId="t" type="monotone" dataKey="temp" stroke="hsl(25 90% 60%)" strokeWidth={1.6} dot={false} />
+                  <YAxis yAxisId="t" domain={[0, 42]} tick={{ fontSize: 10, fill: 'hsl(25 90% 60%)' }} tickLine={false} axisLine={false} unit="°" width={32} />
+                  <YAxis yAxisId="p" orientation="right" tick={{ fontSize: 10, fill: 'hsl(199 90% 60%)' }} tickLine={false} axisLine={false} unit="mm" width={40} />
+                  <Tooltip
+                    contentStyle={{ background: 'hsl(222 44% 10%)', border: '1px solid hsl(217 33% 20%)', borderRadius: 8, fontSize: 12 }}
+                    formatter={(v: number, name: string) => {
+                      const m: Record<string, [string, string]> = { prec: ['日降水', ' mm'], temp: ['日均温', ' °C'], tempMax: ['日最高温', ' °C'] }
+                      const [label, unit] = m[name] ?? [name, '']
+                      return [`${v.toLocaleString()}${unit}`, label]
+                    }}
+                  />
+                  <Bar yAxisId="p" dataKey="prec" name="日降水" stroke="none" fill="#38bdf8" fillOpacity={0.5} barSize={7} radius={[2, 2, 0, 0]} />
+                  <Line yAxisId="t" type="monotone" dataKey="temp" name="日均温" stroke="hsl(25 90% 60%)" strokeWidth={1.8} dot={false} />
+                  <Line yAxisId="t" type="monotone" dataKey="tempMax" name="日最高温" stroke="hsl(0 80% 62%)" strokeWidth={1.2} strokeDasharray="5 3" dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

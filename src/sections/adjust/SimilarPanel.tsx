@@ -65,7 +65,7 @@ export default function SimilarPanel({ days, selected, onSelect, onApply }: Simi
                   <span className="font-mono text-xs font-semibold">{d.date}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {DOW_CN[d.day_of_week] ?? d.day_of_week}
-                    {d.is_weekend && <span className="ml-1 text-violet-300">周末</span>}
+                    {d.is_weekend ? <span className="ml-1 text-violet-300">周末</span> : null}
                   </span>
                 </div>
                 <span className={cn('font-mono text-xs font-bold', active ? 'text-violet-300' : 'text-muted-foreground')}>
