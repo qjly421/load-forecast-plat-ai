@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { SlidersHorizontal, Eye, EyeOff, Loader2, ShieldCheck, CalendarDays, Cpu, Timer } from 'lucide-react'
+import { SlidersHorizontal, Eye, EyeOff, Loader2, ShieldCheck, CalendarDays, Cpu, Timer, AlertTriangle, Activity } from 'lucide-react'
 import AdjustChart from '@/sections/adjust/AdjustChart'
 import AdjustTools from '@/sections/adjust/AdjustTools'
 import SimilarPanel from '@/sections/adjust/SimilarPanel'
 import EffectPanel from '@/sections/adjust/EffectPanel'
 import WeatherChart from '@/sections/adjust/WeatherChart'
 import OpsLog from '@/sections/adjust/OpsLog'
-import { applyOps, mape, coverage, fmtMw } from '@/lib/adjust-engine'
+import { applyOps, mape, rmse, coverage, fmtMw } from '@/lib/adjust-engine'
 import {
-  loadMeta, loadWeather, loadSimilar, loadForecast,
+  loadMeta, loadWeather, loadSimilar, loadForecast, loadLoadMetrics,
   saveSession, loadSession, exportSession,
 } from '@/lib/data-service'
 import type {
-  AdjustOp, MetaFile, WeatherFile, SimilarFile, ForecastFile, SimilarDay, DayForecast,
+  AdjustOp, MetaFile, WeatherFile, SimilarFile, ForecastFile, SimilarDay, DayForecast, LoadMetricsFile,
 } from '@/types/adjust'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { InfoTip } from '@/components/ui/info-tip'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 /** 指标解释文案（ⓘ tooltip 用，中性专业口径） */
@@ -40,6 +41,7 @@ export default function Adjust() {
   const [weather, setWeather] = useState<WeatherFile | null>(null)
   const [similar, setSimilar] = useState<SimilarFile | null>(null)
   const [forecast, setForecast] = useState<ForecastFile | null>(null)
+  const [reg, setReg] = useState<LoadMetricsFile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,9 +68,9 @@ export default function Adjust() {
 
   // 初始加载
   useEffect(() => {
-    Promise.all([loadMeta(), loadWeather(), loadSimilar()])
-      .then(([m, w, s]) => {
-        setMeta(m); setWeather(w); setSimilar(s)
+    Promise.all([loadMeta(), loadWeather(), loadSimilar(), loadLoadMetrics()])
+      .then(([m, w, s, g]) => {
+        setMeta(m); setWeather(w); setSimilar(s); setReg(g)
       })
       .catch((e) => setError(String(e)))
   }, [])
@@ -124,17 +126,42 @@ export default function Adjust() {
     [dayFc, ops, previewOp, meta],
   )
 
+  // 山东全网区域峰值(用于爬坡阈值, 与爬坡预警模块一致 3.88%×峰值)
+  const sdPeakMw = useMemo(() => (reg?.metrics?.sd ? Object.values(reg.metrics.sd)[0]?.peak_mw : 0) ?? 0, [reg])
+
   const kpis = useMemo(() => {
     if (!dayFc || adjusted.length === 0) return null
     const mape0 = mape(dayFc.center, dayFc.actual)
     const mape1 = mape(adjusted, dayFc.actual)
+    const rmse0 = rmse(dayFc.center, dayFc.actual)
+    const rmse1 = rmse(adjusted, dayFc.actual)
+    const actualPeak = Math.max(...dayFc.actual)
+    const peakErr0 = Math.abs(Math.max(...dayFc.center) - actualPeak)
+    const peakErr1 = Math.abs(Math.max(...adjusted) - actualPeak)
     const peak = Math.max(...adjusted)
     const peakSlot = adjusted.indexOf(peak)
     const cov = coverage(dayFc.actual, dayFc.lower, dayFc.upper)
     let maxDelta = 0
     for (let i = 0; i < 96; i++) maxDelta = Math.max(maxDelta, Math.abs(adjusted[i] - dayFc.center[i]))
-    return { mape0, mape1, peak, peakSlot, cov, maxDelta }
-  }, [dayFc, adjusted])
+    // 爬坡风险复核：按 |ΔP(1h)| ≥ 3.88%×区域峰值 重算调整前后爬坡点数（纯算术，无需重训模型）
+    const rampThr = 0.0388 * sdPeakMw
+    const countRamp = (s: number[]) => {
+      let c = 0
+      for (let i = 0; i + 4 < s.length; i++) if (Math.abs(s[i + 4] - s[i]) >= rampThr) c++
+      return c
+    }
+    const ramp0 = countRamp(dayFc.center)
+    const ramp1 = countRamp(adjusted)
+    const worseMape = mape1 > mape0
+    const worseRmse = rmse1 > rmse0
+    const worsePeak = peakErr1 > peakErr0
+    const anyWorse = ops.length > 0 && (worseMape || worseRmse || worsePeak)
+    const worseWhich = [
+      worseMape && 'MAPE', worseRmse && 'RMSE', worsePeak && '峰值误差',
+    ].filter(Boolean).join('、')
+    return { mape0, mape1, rmse0, rmse1, peakErr0, peakErr1, actualPeak,
+      peak, peakSlot, cov, maxDelta, ramp0, ramp1, worseMape, worseRmse, worsePeak, anyWorse, worseWhich, rampThr }
+  }, [dayFc, adjusted, ops, sdPeakMw])
 
   // 区间质量：按所选模型全月 D1 实测（从 forecast 文件计算，PICP 名义 90%）
   const intervalQuality = useMemo(() => {
@@ -218,7 +245,7 @@ export default function Adjust() {
         <div className="mx-auto flex max-w-[1700px] flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-primary" />
-            <h1 className="text-sm font-semibold">山东负荷预测 · 手动调整工作台</h1>
+            <h1 className="text-sm font-semibold">山东负荷预测 · 人机协同预测修正</h1>
             <Badge variant="outline" className="border-border bg-secondary/60 text-[10px] text-muted-foreground">
               2025-06 · D1-D14 · 全网负荷口径
             </Badge>
@@ -284,6 +311,48 @@ export default function Adjust() {
               <Kpi label="最大调整幅度" value={`${fmtMw(kpis.maxDelta)}`} unit="MW" />
               <Kpi label={<><span>区间覆盖率</span><InfoTip title="区间覆盖率 PICP">{INFO.picp}</InfoTip></>} value={`${kpis.cov.toFixed(0)}%`} sub="实际落入90%区间" />
               <Kpi label="操作步数" value={String(ops.length)} sub={savedAt ? '已保存' : '未保存'} tone={ops.length > 0 && !savedAt ? 'warn' : 'normal'} />
+            </div>
+          )}
+
+          {/* 人机协同修正 · 指标与风险复核 */}
+          {kpis && (
+            <div className="card-glow rounded-xl p-4">
+              <div className="mb-2 flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5 text-emerald-400" />
+                <h2 className="text-xs font-semibold text-foreground">人机协同修正 · 指标与风险复核</h2>
+                <span className="ml-auto text-[10px] text-muted-foreground">修正前后对比 · 若明显变差会提示</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                <CompareChip label="MAPE" v0={kpis.mape0} v1={kpis.mape1} fmt={(x) => `${x.toFixed(2)}%`} worse={kpis.worseMape} />
+                <CompareChip label="RMSE" v0={kpis.rmse0} v1={kpis.rmse1} fmt={(x) => `${fmtMw(x)} MW`} worse={kpis.worseRmse} />
+                <CompareChip label="峰值误差" v0={kpis.peakErr0} v1={kpis.peakErr1} fmt={(x) => `${fmtMw(x)} MW`} worse={kpis.worsePeak} />
+                <div className="rounded-lg border border-violet-400/40 bg-violet-400/10 px-2.5 py-2">
+                  <div className="text-[10px] text-muted-foreground">爬坡点数（复核）</div>
+                  <div className="mt-0.5 font-mono text-[13px] font-semibold text-violet-200">
+                    {kpis.ramp0}
+                    <span className="text-muted-foreground/60"> → </span>
+                    {kpis.ramp1}
+                    <span className="ml-0.5 text-[10px] font-normal">个</span>
+                  </div>
+                  <div className="text-[10px] text-violet-300/80">
+                    {kpis.ramp1 === kpis.ramp0 ? '未变化' : kpis.ramp1 > kpis.ramp0 ? '+增加' : '−减少'}
+                  </div>
+                </div>
+              </div>
+              {kpis.anyWorse && (
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-200">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    调整后 <b className="font-semibold text-amber-300">{kpis.worseWhich}</b> 变差：
+                    建议保留原始预测，或点击
+                    <Button size="sm" variant="outline" onClick={reset} className="mx-1.5 h-6 px-2 text-[10px]">恢复原始预测</Button>
+                    一键还原。
+                  </span>
+                </div>
+              )}
+              <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                爬坡风险复核：按 |ΔP(1h)| ≥ 3.88%×区域峰值（约 {fmtMw(kpis.rampThr)} MW）重算调整前后爬坡点数，纯算术即时更新、无需重训模型。
+              </p>
             </div>
           )}
 
@@ -359,8 +428,8 @@ export default function Adjust() {
 
           {/* 系统定位（页脚能力概述） */}
           <footer className="rounded-xl border border-border/60 bg-card/30 px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-            面向电力调度的负荷预测研判工作台：AI 全月预测底稿 · 多模型对比（LGB / TCN / HistGB / RF / ET / Linear）·
-            相似日 / 气象 / 分时段人工修正 · 概率区间 · 操作回放与导出。
+            面向电力调度的负荷预测与人机协同风险研判平台：AI 全月预测底稿 · 多模型对比（LGB / TCN / HistGB / RF / ET / Linear）·
+            相似日 / 气象 / 分时段人工修正 · 概率区间 · 修正前后指标与爬坡风险复核 · 操作回放与导出。
           </footer>
         </main>
       )}
@@ -385,6 +454,25 @@ function ToolbarSelect({ icon, label, value, onValueChange, options, width }: {
           ))}
         </SelectContent>
       </Select>
+    </div>
+  )
+}
+
+/** 修正前后对比 chip：v0 → v1，按方向着色 */
+function CompareChip({ label, v0, v1, fmt, worse }: {
+  label: string; v0: number; v1: number; fmt: (x: number) => string; worse: boolean
+}) {
+  const dir = v1 < v0 ? '改善' : v1 > v0 ? '变差' : '持平'
+  const color = v1 < v0 ? 'text-emerald-400' : v1 > v0 ? 'text-rose-400' : 'text-muted-foreground'
+  return (
+    <div className="rounded-lg border border-border/60 bg-secondary/30 px-2.5 py-2">
+      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="mt-0.5 font-mono text-[13px] font-semibold text-foreground">
+        {fmt(v0)}
+        <span className="text-muted-foreground/60"> → </span>
+        <span className={color}>{fmt(v1)}</span>
+      </div>
+      <div className={cn('text-[10px]', color, worse && 'font-semibold')}>{dir}</div>
     </div>
   )
 }

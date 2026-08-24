@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { History, Blend, Thermometer, Sun, CloudRain, Target } from 'lucide-react'
+import { History, Blend, Thermometer, Sun, CloudRain, Target, Sparkles } from 'lucide-react'
 import type { SimilarDay } from '@/types/adjust'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
@@ -35,6 +35,13 @@ const DOW_CN: Record<string, string> = {
 export default function SimilarPanel({ days, selected, onSelect, onApply, targetDay, targetWeather }: SimilarPanelProps) {
   const [blend, setBlend] = useState(50)
 
+  // AI 推荐：取相似度最高的 Top1 相似日，按相似度折算一个稳妥的混入比例
+  const recommended = days && days.length > 0 ? days[0] : null
+  const recBlend = recommended
+    ? Math.max(20, Math.min(100, Math.round((recommended.similarity_score * 100 * 0.6) / 10) * 10))
+    : 50
+  const recPct = recommended ? (recommended.similarity_score * 100).toFixed(0) : '—'
+
   return (
     <div className="card-glow flex flex-col rounded-xl p-4">
       {/* 目标日天气参照（最上方） */}
@@ -67,6 +74,31 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
         </div>
         <span className="text-[10px] text-muted-foreground">负荷形状 + 气温 + 降水</span>
       </div>
+
+      {/* AI 推荐：一键应用 Top1 相似日 + 建议权重 */}
+      {recommended && (
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-2">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
+          <div className="min-w-0 flex-1 text-[10px] leading-tight text-emerald-100">
+            AI 推荐：相似日
+            <span className="ml-0.5 font-mono font-semibold text-emerald-200">{recommended.date}</span>
+            <span className="text-emerald-300/80">（Top1 · 相似 {recPct}%）</span>
+            · 建议混入 <b className="font-semibold text-emerald-200">{recBlend}%</b>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 shrink-0 px-2 text-[10px] text-emerald-200 hover:text-emerald-100"
+            onClick={() => {
+              onSelect(recommended)
+              setBlend(recBlend)
+              onApply(recommended, recBlend / 100)
+            }}
+          >
+            一键应用推荐
+          </Button>
+        </div>
+      )}
 
       {/* 相似日列表：固定高度内滚动，10 条不再撑高面板，修正框紧贴下方 */}
       <div className="min-h-0 max-h-[360px] space-y-1.5 overflow-y-auto pr-1">

@@ -104,6 +104,17 @@ export function mape(pred: number[], actual: number[]): number {
   return n > 0 ? (s / n) * 100 : 0
 }
 
+/** 均方根误差（MW） */
+export function rmse(pred: number[], actual: number[]): number {
+  let s = 0
+  let n = 0
+  for (let i = 0; i < Math.min(pred.length, actual.length); i++) {
+    s += (pred[i] - actual[i]) ** 2
+    n++
+  }
+  return n > 0 ? Math.sqrt(s / n) : 0
+}
+
 /** 区间覆盖率：actual 落在 [lower, upper] 的比例 */
 export function coverage(actual: number[], lower: number[], upper: number[]): number {
   let hit = 0
