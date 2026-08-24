@@ -13,28 +13,28 @@
       "id": "de",
       "name": "德国 / Germany",
       "unit": "MW",
-      "tz": "CET",
-      "test_start": "2019-06-01",
-      "test_end": "2019-06-30",
-      "label": "ENSTSO-E 全网负荷"
+      "tz": "Europe/Berlin",
+      "test_start": "2025-06-01",
+      "test_end": "2025-06-30",
+      "label": "Fraunhofer Energy-Charts 全网实际负荷"
     },
     {
       "id": "be",
       "name": "比利时 / Belgium",
       "unit": "MW",
-      "tz": "CET",
-      "test_start": "2019-06-01",
-      "test_end": "2019-06-30",
-      "label": "ENSTSO-E 全网负荷"
+      "tz": "Europe/Brussels",
+      "test_start": "2025-06-01",
+      "test_end": "2025-06-30",
+      "label": "Fraunhofer Energy-Charts 全网实际负荷"
     },
     {
       "id": "nl",
       "name": "荷兰 / Netherlands",
       "unit": "MW",
-      "tz": "CET",
-      "test_start": "2019-06-01",
-      "test_end": "2019-06-30",
-      "label": "ENSTSO-E 全网负荷"
+      "tz": "Europe/Amsterdam",
+      "test_start": "2025-06-01",
+      "test_end": "2025-06-30",
+      "label": "Fraunhofer Energy-Charts 全网实际负荷"
     }
   ],
   "models": [
@@ -110,134 +110,134 @@
     },
     "de": {
       "lgb": {
-        "mape": 3.74,
-        "picp": 95.7,
-        "mpiw": 13914.0,
-        "rmse": 3227.0,
-        "peak_mw": 71795.0
+        "mape": 3.36,
+        "rmse": 2378.11,
+        "picp": 96.3,
+        "mpiw": 12021.55,
+        "peak_mw": 64200.0
       },
       "tcn": {
-        "mape": 6.78,
-        "picp": 95.8,
-        "mpiw": 18856.0,
-        "rmse": 4595.0,
-        "peak_mw": 71795.0
+        "mape": 5.78,
+        "rmse": 0,
+        "picp": 94.9,
+        "mpiw": 14635,
+        "peak_mw": 64200.0
       },
       "hgb": {
-        "mape": 3.74,
-        "picp": 95.3,
-        "mpiw": 14654.0,
-        "rmse": 3167.0,
-        "peak_mw": 71795.0
+        "mape": 3.709,
+        "rmse": 2522.16,
+        "picp": 96.4,
+        "mpiw": 12477.01,
+        "peak_mw": 64200.0
       },
       "rf": {
-        "mape": 3.99,
-        "picp": 94.7,
-        "mpiw": 15788.0,
-        "rmse": 3439.0,
-        "peak_mw": 71795.0
+        "mape": 3.496,
+        "rmse": 2640.23,
+        "picp": 95.8,
+        "mpiw": 11775.46,
+        "peak_mw": 64200.0
       },
       "et": {
-        "mape": 3.15,
-        "picp": 95.5,
-        "mpiw": 11712.0,
-        "rmse": 2734.0,
-        "peak_mw": 71795.0
+        "mape": 3.382,
+        "rmse": 2435.66,
+        "picp": 94.7,
+        "mpiw": 9585.02,
+        "peak_mw": 64200.0
       },
       "lin": {
-        "mape": 5.6,
-        "picp": 95.0,
-        "mpiw": 20446.0,
-        "rmse": 4321.0,
-        "peak_mw": 71795.0
+        "mape": 5.483,
+        "rmse": 3732.08,
+        "picp": 93.0,
+        "mpiw": 13915.97,
+        "peak_mw": 64200.0
       }
     },
     "be": {
       "lgb": {
-        "mape": 3.19,
-        "picp": 95.1,
-        "mpiw": 1924.0,
-        "rmse": 437.0,
-        "peak_mw": 11513.0
+        "mape": 2.863,
+        "rmse": 327.75,
+        "picp": 98.0,
+        "mpiw": 1859.43,
+        "peak_mw": 10730.0
       },
       "tcn": {
-        "mape": 4.56,
-        "picp": 96.4,
-        "mpiw": 2426.0,
-        "rmse": 536.0,
-        "peak_mw": 11513.0
+        "mape": 4.27,
+        "rmse": 0,
+        "picp": 94.3,
+        "mpiw": 1831,
+        "peak_mw": 10730.0
       },
       "hgb": {
-        "mape": 3.33,
-        "picp": 95.6,
-        "mpiw": 1901.0,
-        "rmse": 437.0,
-        "peak_mw": 11513.0
+        "mape": 3.01,
+        "rmse": 342.84,
+        "picp": 97.9,
+        "mpiw": 1872.35,
+        "peak_mw": 10730.0
       },
       "rf": {
-        "mape": 2.98,
-        "picp": 95.8,
-        "mpiw": 2009.0,
-        "rmse": 416.0,
-        "peak_mw": 11513.0
+        "mape": 2.976,
+        "rmse": 348.19,
+        "picp": 97.7,
+        "mpiw": 1833.53,
+        "peak_mw": 10730.0
       },
       "et": {
-        "mape": 2.73,
-        "picp": 96.1,
-        "mpiw": 1793.0,
-        "rmse": 378.0,
-        "peak_mw": 11513.0
+        "mape": 2.811,
+        "rmse": 327.49,
+        "picp": 96.4,
+        "mpiw": 1379.38,
+        "peak_mw": 10730.0
       },
       "lin": {
-        "mape": 3.87,
-        "picp": 96.6,
-        "mpiw": 2246.0,
-        "rmse": 477.0,
-        "peak_mw": 11513.0
+        "mape": 4.358,
+        "rmse": 482.32,
+        "picp": 91.5,
+        "mpiw": 1641.71,
+        "peak_mw": 10730.0
       }
     },
     "nl": {
       "lgb": {
-        "mape": 2.84,
-        "picp": 97.0,
-        "mpiw": 2518.0,
-        "rmse": 473.0,
-        "peak_mw": 15204.0
+        "mape": 2.365,
+        "rmse": 432.36,
+        "picp": 97.4,
+        "mpiw": 2232.37,
+        "peak_mw": 15270.0
       },
       "tcn": {
-        "mape": 6.22,
-        "picp": 91.9,
-        "mpiw": 3147.0,
-        "rmse": 901.0,
-        "peak_mw": 15204.0
+        "mape": 4.32,
+        "rmse": 0,
+        "picp": 93.5,
+        "mpiw": 2630,
+        "peak_mw": 15270.0
       },
       "hgb": {
-        "mape": 2.96,
-        "picp": 96.6,
-        "mpiw": 2550.0,
-        "rmse": 504.0,
-        "peak_mw": 15204.0
+        "mape": 2.371,
+        "rmse": 428.47,
+        "picp": 97.3,
+        "mpiw": 2201.8,
+        "peak_mw": 15270.0
       },
       "rf": {
-        "mape": 3.35,
-        "picp": 95.5,
-        "mpiw": 2455.0,
-        "rmse": 568.0,
-        "peak_mw": 15204.0
+        "mape": 2.454,
+        "rmse": 460.49,
+        "picp": 95.4,
+        "mpiw": 1973.16,
+        "peak_mw": 15270.0
       },
       "et": {
-        "mape": 2.99,
-        "picp": 97.5,
-        "mpiw": 2436.0,
-        "rmse": 486.0,
-        "peak_mw": 15204.0
+        "mape": 2.291,
+        "rmse": 415.99,
+        "picp": 97.0,
+        "mpiw": 1988.49,
+        "peak_mw": 15270.0
       },
       "lin": {
-        "mape": 4.07,
-        "picp": 91.9,
-        "mpiw": 2358.0,
-        "rmse": 677.0,
-        "peak_mw": 15204.0
+        "mape": 3.539,
+        "rmse": 583.58,
+        "picp": 92.3,
+        "mpiw": 2064.5,
+        "peak_mw": 15270.0
       }
     }
   }

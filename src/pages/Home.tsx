@@ -445,10 +445,10 @@ export default function Home() {
         {isSd && <EnergyMap />}
 
         <CollapsibleInfo>
-          负荷预测主线：在<b className="text-foreground/80">山东（全网 MW）/ 德国 / 比利时 / 荷兰（ENSTSO-E 全网）</b>四个真实 15min 序列上做<b className="text-foreground/80">日前(D1)预测</b>，
+          负荷预测主线：在<b className="text-foreground/80">山东（全网 MW，2025-06）/ 德国 / 比利时 / 荷兰（Fraunhofer Energy-Charts 全网实际负荷，2024-2025）</b>四个真实序列（统一 15min 口径）上做<b className="text-foreground/80">日前(D1)预测</b>，
           每个数据集用同口径 6 个模型 PK（LightGBM / TCN / HistGradientBoost / Random Forest / Extra Trees / Linear），
-          并给出<b className="text-foreground/80">90% 共形预测区间</b>（PICP 实测 ≥92%，名义达标）。特征为日前无泄漏构造（同槽滞后 + 时相 + 气温），
-          预测与区间指标均取自严格 held-out 测试月。手动调整工作台仅针对山东真实数据。
+          并给出<b className="text-foreground/80">96% 共形预测区间</b>（PICP 实测 ≥92%，名义达标）。特征为日前无泄漏构造（同槽滞后 + 时相 + 气温），
+          预测与区间指标均取自严格 held-out 测试月（欧洲 2025-06，与山东同月）。手动调整工作台仅针对山东真实数据。
         </CollapsibleInfo>
 
         <footer className="rounded-xl border border-border/60 bg-card/30 px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
