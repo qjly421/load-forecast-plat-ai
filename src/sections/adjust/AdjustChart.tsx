@@ -212,17 +212,7 @@ export default function AdjustChart({
             />
           )}
 
-          {/* 原始预测（中心，橙色更醒目） */}
-          <Line
-            type="monotone"
-            dataKey="center"
-            stroke="hsl(25 90% 60%)"
-            strokeWidth={1.8}
-            strokeDasharray="6 4"
-            dot={false}
-          />
-
-          {/* 调整后预测 */}
+          {/* 调整后预测（置于底层，未调整时应以原始预测为基准） */}
           <Line
             type="monotone"
             dataKey="adjusted"
@@ -230,6 +220,16 @@ export default function AdjustChart({
             strokeWidth={2.6}
             dot={false}
             isAnimationActive={false}
+          />
+
+          {/* 原始预测（中心，橙色基准→置于顶层避免被调整线遮盖） */}
+          <Line
+            type="monotone"
+            dataKey="center"
+            stroke="hsl(25 90% 60%)"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            dot={false}
           />
 
           {/* 关键点标记 */}

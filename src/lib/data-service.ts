@@ -11,6 +11,7 @@ import type {
   ModelCompareFile,
   CrossRegionFile,
   WeatherLoadCouplingFile,
+  LoadMetricsFile,
 } from '@/types/adjust'
 
 const cache: Record<string, unknown> = {}
@@ -30,6 +31,9 @@ export const loadWeather = () => loadJson<WeatherFile>('data/weather.json')
 export const loadSimilar = () => loadJson<SimilarFile>('data/similar.json')
 export const loadForecast = (model: string) =>
   loadJson<ForecastFile>(`data/forecast_${model}.json`)
+export const loadForecastFor = (dataset: string, model: string) =>
+  loadJson<ForecastFile>(`data/forecast_${dataset}_${model}.json`)
+export const loadLoadMetrics = () => loadJson<LoadMetricsFile>('data/load_metrics.json')
 export const loadIntervals = () =>
   loadJson<Record<string, Record<string, unknown>[]>>('data/intervals.json')
 export const loadInstalledCapacity = () =>

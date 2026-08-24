@@ -1,0 +1,212 @@
+{
+  "datasets": [
+    {
+      "id": "sd",
+      "name": "山东 / Shandong",
+      "unit": "MW",
+      "tz": "Asia/Shanghai",
+      "test_start": "2025-06-01",
+      "test_end": "2025-06-30",
+      "label": "全网实际负荷"
+    },
+    {
+      "id": "de",
+      "name": "德国 / Germany",
+      "unit": "MW",
+      "tz": "CET",
+      "test_start": "2019-06-01",
+      "test_end": "2019-06-30",
+      "label": "ENSTSO-E 全网负荷"
+    },
+    {
+      "id": "be",
+      "name": "比利时 / Belgium",
+      "unit": "MW",
+      "tz": "CET",
+      "test_start": "2019-06-01",
+      "test_end": "2019-06-30",
+      "label": "ENSTSO-E 全网负荷"
+    },
+    {
+      "id": "nl",
+      "name": "荷兰 / Netherlands",
+      "unit": "MW",
+      "tz": "CET",
+      "test_start": "2019-06-01",
+      "test_end": "2019-06-30",
+      "label": "ENSTSO-E 全网负荷"
+    }
+  ],
+  "models": [
+    {
+      "id": "lgb",
+      "name": "LightGBM"
+    },
+    {
+      "id": "hgb",
+      "name": "HistGradientBoost"
+    },
+    {
+      "id": "rf",
+      "name": "Random Forest"
+    },
+    {
+      "id": "et",
+      "name": "Extra Trees"
+    },
+    {
+      "id": "lin",
+      "name": "Linear"
+    }
+  ],
+  "metrics": {
+    "sd": {
+      "lgb": {
+        "mape": 2.75,
+        "picp": 96.8,
+        "mpiw": 12909.0,
+        "rmse": 2979.0,
+        "peak_mw": 107087.0
+      },
+      "hgb": {
+        "mape": 2.73,
+        "picp": 96.7,
+        "mpiw": 12270.0,
+        "rmse": 2915.0,
+        "peak_mw": 107087.0
+      },
+      "rf": {
+        "mape": 3.02,
+        "picp": 92.5,
+        "mpiw": 11917.0,
+        "rmse": 3267.0,
+        "peak_mw": 107087.0
+      },
+      "et": {
+        "mape": 3.0,
+        "picp": 94.1,
+        "mpiw": 12389.0,
+        "rmse": 3262.0,
+        "peak_mw": 107087.0
+      },
+      "lin": {
+        "mape": 3.77,
+        "picp": 92.0,
+        "mpiw": 13857.0,
+        "rmse": 3899.0,
+        "peak_mw": 107087.0
+      }
+    },
+    "de": {
+      "lgb": {
+        "mape": 3.74,
+        "picp": 95.7,
+        "mpiw": 13914.0,
+        "rmse": 3227.0,
+        "peak_mw": 71795.0
+      },
+      "hgb": {
+        "mape": 3.74,
+        "picp": 95.3,
+        "mpiw": 14654.0,
+        "rmse": 3167.0,
+        "peak_mw": 71795.0
+      },
+      "rf": {
+        "mape": 3.99,
+        "picp": 94.7,
+        "mpiw": 15788.0,
+        "rmse": 3439.0,
+        "peak_mw": 71795.0
+      },
+      "et": {
+        "mape": 3.15,
+        "picp": 95.5,
+        "mpiw": 11712.0,
+        "rmse": 2734.0,
+        "peak_mw": 71795.0
+      },
+      "lin": {
+        "mape": 5.6,
+        "picp": 95.0,
+        "mpiw": 20446.0,
+        "rmse": 4321.0,
+        "peak_mw": 71795.0
+      }
+    },
+    "be": {
+      "lgb": {
+        "mape": 3.19,
+        "picp": 95.1,
+        "mpiw": 1924.0,
+        "rmse": 437.0,
+        "peak_mw": 11513.0
+      },
+      "hgb": {
+        "mape": 3.33,
+        "picp": 95.6,
+        "mpiw": 1901.0,
+        "rmse": 437.0,
+        "peak_mw": 11513.0
+      },
+      "rf": {
+        "mape": 2.98,
+        "picp": 95.8,
+        "mpiw": 2009.0,
+        "rmse": 416.0,
+        "peak_mw": 11513.0
+      },
+      "et": {
+        "mape": 2.73,
+        "picp": 96.1,
+        "mpiw": 1793.0,
+        "rmse": 378.0,
+        "peak_mw": 11513.0
+      },
+      "lin": {
+        "mape": 3.87,
+        "picp": 96.6,
+        "mpiw": 2246.0,
+        "rmse": 477.0,
+        "peak_mw": 11513.0
+      }
+    },
+    "nl": {
+      "lgb": {
+        "mape": 2.84,
+        "picp": 97.0,
+        "mpiw": 2518.0,
+        "rmse": 473.0,
+        "peak_mw": 15204.0
+      },
+      "hgb": {
+        "mape": 2.96,
+        "picp": 96.6,
+        "mpiw": 2550.0,
+        "rmse": 504.0,
+        "peak_mw": 15204.0
+      },
+      "rf": {
+        "mape": 3.35,
+        "picp": 95.5,
+        "mpiw": 2455.0,
+        "rmse": 568.0,
+        "peak_mw": 15204.0
+      },
+      "et": {
+        "mape": 2.99,
+        "picp": 97.5,
+        "mpiw": 2436.0,
+        "rmse": 486.0,
+        "peak_mw": 15204.0
+      },
+      "lin": {
+        "mape": 4.07,
+        "picp": 91.9,
+        "mpiw": 2358.0,
+        "rmse": 677.0,
+        "peak_mw": 15204.0
+      }
+    }
+  }
+}

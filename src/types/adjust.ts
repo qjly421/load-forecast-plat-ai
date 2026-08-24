@@ -231,6 +231,38 @@ export interface WeatherLoadCouplingFile {
   daily: { hour: number; tmean: number; load: number }[]
 }
 
+// ---- 负荷预测多数据集 × 多模型评测（新主线） ----
+
+export interface LoadDatasetMeta {
+  id: string
+  name: string
+  unit: string
+  tz: string
+  test_start: string
+  test_end: string
+  label: string
+}
+
+export interface LoadModelMeta {
+  id: string
+  name: string
+}
+
+export interface LoadMetricRow {
+  mape: number // %
+  picp: number // 覆盖率 %
+  mpiw: number // MW
+  rmse: number // MW
+  peak_mw: number // MW
+}
+
+export interface LoadMetricsFile {
+  datasets: LoadDatasetMeta[]
+  models: LoadModelMeta[]
+  // dataset -> model -> 指标
+  metrics: Record<string, Record<string, LoadMetricRow>>
+}
+
 /** 跨区域泛化（松结构：研究侧指标，前端只取需要的字段） */
 export interface CrossRegionFile {
   methodology?: Record<string, unknown>
