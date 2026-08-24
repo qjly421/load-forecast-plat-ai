@@ -299,8 +299,9 @@ export default function Adjust() {
               onKeypointsChange={setKeypoints}
               onApplyKeypoints={applyKeypoints}
             />
-            <div className="card-glow rounded-xl p-4">
-              <div className="mb-2 flex items-center justify-between">
+            <div className="flex flex-col gap-3">
+              <div className="card-glow rounded-xl p-4">
+                <div className="mb-2 flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-semibold">
                     {targetDay} 负荷曲线
@@ -334,10 +335,7 @@ export default function Adjust() {
                 keypoints={keypoints}
                 onChartClick={onChartClick}
               />
-            </div>
-            <div className="flex flex-col gap-3">
-              <SimilarPanel days={simDays} selected={simDay} onSelect={setSimDay} onApply={applySimilar}
-                targetDay={targetDay} targetWeather={targetWx} />
+              </div>
               <EffectPanel
                 before={dayFc.center}
                 after={adjusted}
@@ -349,6 +347,8 @@ export default function Adjust() {
                 dayplus={dayplus}
               />
             </div>
+            <SimilarPanel days={simDays} selected={simDay} onSelect={setSimDay} onApply={applySimilar}
+              targetDay={targetDay} targetWeather={targetWx} />
           </div>
 
           {/* 下区 */}
