@@ -183,7 +183,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-[1700px] flex-wrap items-center justify-between gap-2 px-6 py-3">
           <div className="flex items-center gap-2">
             <LayoutDashboard className="h-4 w-4 text-primary" />
-            <h1 className="text-sm font-semibold">山东负荷预测 · 月度运行看板</h1>
+            <h1 className="text-sm font-semibold">负荷预测 · 月度运行看板</h1>
             <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-400">
               <Database className="mr-1 h-3 w-3" />真实数据
             </Badge>

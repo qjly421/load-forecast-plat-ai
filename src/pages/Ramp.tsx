@@ -1,7 +1,6 @@
 import { Zap, Rocket, GitCompare, Globe, CloudSun } from 'lucide-react'
 import RampForecast from '@/sections/home/RampForecast'
 import WeatherLoadCoupling from '@/sections/home/WeatherLoadCoupling'
-import { Badge } from '@/components/ui/badge'
 
 /**
  * 爬坡预警 · 系统前沿创新主界面
@@ -16,7 +15,6 @@ export default function Ramp() {
           <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-400" />
             <h1 className="text-sm font-semibold">负荷爬坡事件概率预警</h1>
-            <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-400">系统前沿创新</Badge>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <span>跨电网零样本 · 多模型同口径 · 气象耦合</span>

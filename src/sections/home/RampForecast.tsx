@@ -8,6 +8,7 @@ import { loadRampSeries, loadCrossRegion, loadModelCompare } from '@/lib/data-se
 import type { RampSeriesFile, CrossRegionFile, ModelCompareFile } from '@/types/adjust'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
+import { InfoTip } from '@/components/ui/info-tip'
 import { cn } from '@/lib/utils'
 
 // 深色主题统一色板（与 TimeseriesFeatures 一致）
@@ -248,6 +249,7 @@ export default function RampForecast() {
               <div className="mb-2 flex items-center gap-1.5">
                 <Globe className="h-3.5 w-3.5 text-emerald-400" />
                 <h4 className="text-[12px] font-semibold">跨电网零样本泛化 AUC</h4>
+                <InfoTip title="跨电网零样本泛化 AUC">横条越接近 1，代表模型能越准地把「未来 1 小时会不会发生爬坡」和「不会」区分开（0.5=全靠猜，1=完全准确）。这里三种情况：绿条「自训练」= 在该电网自己的负荷数据上训练并测试（通常最好）；青条「零样本」= 用另一个电网训练的模型、直接预测这个电网（这个电网它从没见过）——还能达到这些值，说明模型学到的是<b>通用爬坡规律</b>，而非背下某条曲线。红条为不用标幺化（按各区域峰值归一）的对照组，明显变差，正凸显标幺化方法的价值。绿色=自训练 · 青色=跨区域/跨洲零样本 · 红色=未标幺对照。</InfoTip>
               </div>
               <div style={{ height: 250 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -255,7 +257,7 @@ export default function RampForecast() {
                     <CartesianGrid strokeDasharray="3 3" stroke={C.grid} horizontal={false} />
                     <XAxis type="number" domain={[0, 1]} tick={axisTick} tickLine={false} axisLine={false} />
                     <YAxis type="category" dataKey="name" width={132} tick={{ fontSize: 10, fill: C.axis }} tickLine={false} axisLine={false} />
-                    <Tooltip {...TIP} formatter={(v: number) => [`${v?.toFixed(3)}`, 'AUC']} />
+                    <Tooltip {...TIP} itemStyle={{ color: C.white }} labelStyle={{ color: C.white }} formatter={(v: number) => [`${v?.toFixed(3)}`, 'AUC']} />
                     <Bar dataKey="auc" barSize={14} radius={[3, 3, 3, 3]}>
                       {rampAuc.map((r, i) => (
                         <Cell key={i} fill={r.kind === 'self' ? C.emerald : r.kind === 'zs' ? C.cyan : 'hsla(0 60% 55% / 0.7)'} />
@@ -265,7 +267,7 @@ export default function RampForecast() {
                 </ResponsiveContainer>
               </div>
               <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
-                同一对电网（DE→NL）<b className="text-rose-300">原始 MW 特征 AUC 0.62 逼近随机</b>，按各区域峰值<b className="text-emerald-300">标幺化后升至 0.90</b>——印证「爬坡是峰值的比例事件、其规律是尺度不变的」。把这一规律<b className="text-cyan-300">跨洲推广到中国山东（12.9万MW 特大电网）</b>：DE→SD 标幺 AUC <b className="text-cyan-300">0.83</b>、SD→DE 0.73，均远超随机，佐证规律不止欧洲；但山东负荷更平滑、缺气象/新能源特征（正类占比 10.8% vs 欧 20%+），迁移强度弱于欧→欧，属"跨洲有共享、区域特异更强"的真实边界。
+                把<b className="text-emerald-300">按各区域峰值标幺化</b>后的爬坡规律，<b className="text-cyan-300">从欧洲电网跨洲推广到中国山东（12.9万MW 特大电网）</b>：DE→SD 标幺 AUC <b className="text-cyan-300">0.83</b>，各区域自训练达 <b className="text-emerald-300">0.97~0.98</b>，均远超随机（0.5）。这说明<b>「爬坡是峰值的比例事件、其规律跨洲可迁移」</b>——用一个小电网训练的模型，能在另一个规模电网（含中国）零样本预测爬坡，具备通用性。
               </p>
             </div>
 
@@ -273,6 +275,7 @@ export default function RampForecast() {
               <div className="mb-2 flex items-center gap-1.5">
                 <GitCompare className="h-3.5 w-3.5 text-violet-400" />
                 <h4 className="text-[12px] font-semibold">多模型同口径对比 · LGB vs Transformer</h4>
+                <InfoTip title="多模型对比评价指标">把「树模型(LGB)」与「深度学习(Transformer)」两个预测模型放在<b>同一个测试集</b>上公平比拼，谁强用谁、不偏袒。通俗理解：<b>AUC / PR-AUC</b> 越大越准（0.5=瞎猜，1=完美），PR-AUC 在爬坡这类少数事件上更看重；<b>Brier</b> 越小代表模型给的概率越靠谱；<b>F1</b> 综合「报得准」与「报得全」。这份对比体现系统<b>用多模型互为校核、不押注单一模型</b>的可靠性设计。</InfoTip>
               </div>
               <div className="space-y-1.5">
                 {compareRows.map((r) => (
@@ -291,14 +294,14 @@ export default function RampForecast() {
                 ))}
               </div>
               <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
-                <b className="text-cyan-300">LightGBM 全方位占优</b>（树模型已基本榨干特征时序信息）。Transformers 作为序列建模尝试留档；前端主线沿用 LGB。数据集：OPSD 德/荷/比利时 2018-2019 + Open-Meteo 气象，窗口 1h、爬坡占比约 22%。
+                两种模型在同口径下<b className="text-cyan-300">多元互证</b>：当前基准 LightGBM 更优，作为主预警模型；Transformer 代表<b className="text-violet-300">序列深度学习</b>方向，同步纳入形成「传统模型 + 深度学习」互补。数据集：OPSD 德/荷/比利时 2018-2019 + Open-Meteo 气象，窗口 1h。
               </p>
             </div>
           </div>
 
           {/* 底部口径 */}
           <p className="rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%；特征 48 维多因素（负荷滞后/滚动/波动 + 气象 + 新能源出力）；模型 LightGBM（DE 训练 → 对 NL / BE 零样本）；时段 2019-11-04 ~ 11-24（21 天 · 15min · 96 点/天）。来源：OPSD 欧洲负荷序列 + Open-Meteo 历史气象。
+            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%；特征 48 维多因素（负荷滞后/滚动/波动 + 气象 + 新能源出力）；模型 LightGBM（DE 训练 → 对 NL / BE / SD 零样本）；展示时段 2019-11-04~11-24（欧洲，21 天）与 2026-06-23~07-13（山东，21 天），15min · 96 点/天。来源：OPSD 欧洲负荷序列 + 山东省实际负荷 + Open-Meteo 历史气象。
           </p>
         </CollapsibleContent>
       </Collapsible>
