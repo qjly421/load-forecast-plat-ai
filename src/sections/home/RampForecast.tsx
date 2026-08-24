@@ -137,7 +137,7 @@ export default function RampForecast() {
     const maxPoint = ev.find((r) => r.sev === maxSev)
     const maxDir = maxPoint ? ((maxPoint.dp ?? 0) > 0 ? '上' : '下') : '—'
     // 事件覆盖（召回）：真实事件点是否落在预警段内；精确率：预警段内事件点占比
-    const coverage = events ? Math.round((covered / events) * 100) : 0
+    const coverage = events ? Math.round((covered / events) * 100) : null
     const precision = warnPts.length ? Math.round((hitPts / warnPts.length) * 100) : 0
     return { events, warns: warnIntervals.length, hitSegs, precision, coverage, maxProb, maxSev, sCount, maxDir }
   }, [rows, warnIntervals])
@@ -192,7 +192,7 @@ export default function RampForecast() {
               <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-400">创新点</Badge>
             </h3>
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-              爬坡 = 未来 1h 内净负荷变化超过阈值（新能源高渗透下电网调度的关键风险）。模型在同一口径下于<b className="text-foreground/80">德 / 荷 / 比利时 / 中国山东的中欧不同规模电网间跨区域迁移</b>——用一个电网训练的模型在另一个电网零样本预警爬坡，按各区域峰值<b className="text-emerald-400">标幺化</b>后跨电网 AUC 0.73~0.95。
+              爬坡 = 未来 1h 内净负荷变化超过阈值（新能源高渗透下电网调度的关键风险）。模型在同一口径下于<b className="text-foreground/80">德 / 荷 / 比利时 / 中国山东的中欧不同规模电网间跨区域迁移</b>——用一个电网训练的模型在另一个电网零样本预警爬坡，按各区域峰值<b className="text-emerald-400">标幺化</b>后跨电网 AUC 0.71~0.95。
             </p>
           </div>
           <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
@@ -229,7 +229,7 @@ export default function RampForecast() {
               <MiniKpi label="本日峰值预测概率" value={`${(kpi.maxProb * 100).toFixed(0)}%`} icon={<Zap className="h-3 w-3 text-amber-400" />} />
               <MiniKpi label="最大爬坡等级" value={SEV_NAME[kpi.maxSev]} sub={`${kpi.maxSev ? `${kpi.maxDir}坡 · ${SEV_NAME[kpi.maxSev]}` : '当日无爬坡'}`} icon={<AlertTriangle className={kpi.maxSev === 3 ? 'h-3 w-3 text-rose-400' : kpi.maxSev === 2 ? 'h-3 w-3 text-amber-400' : 'h-3 w-3 text-sky-400'} />} />
               <MiniKpi label="真实爬坡事件" value={`${kpi.events}`} unit="个" sub={`一般 ${kpi.sCount[0]} · 较大 ${kpi.sCount[1]} · 重大 ${kpi.sCount[2]}`} icon={<AlertTriangle className="h-3 w-3 text-rose-400" />} />
-              <MiniKpi label="事件覆盖（召回）" value={`${kpi.coverage}%`} sub={`预警 ${kpi.warns} 段 · 命中 ${kpi.hitSegs} · 精确 ${kpi.precision}%`} icon={<AlertTriangle className="h-3 w-3 text-emerald-400" />} />
+              <MiniKpi label="事件覆盖（召回）" value={kpi.events ? `${kpi.coverage}%` : '—'} sub={kpi.events ? `预警 ${kpi.warns} 段 · 命中 ${kpi.hitSegs} · 精确 ${kpi.precision}%` : '当日无真实爬坡'} icon={<AlertTriangle className="h-3 w-3 text-emerald-400" />} />
             </div>
           )}
 
@@ -298,7 +298,7 @@ export default function RampForecast() {
                 </ResponsiveContainer>
               </div>
               <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
-                把<b className="text-emerald-300">按各区域峰值标幺化</b>后的爬坡规律，<b className="text-cyan-300">从欧洲电网跨洲推广到中国山东（10.7万MW 特大电网）</b>：DE→SD 标幺 AUC <b className="text-cyan-300">0.73</b>，各区域自训练达 <b className="text-emerald-300">0.94~0.98</b>，均远超随机（0.5）。这说明<b>「爬坡是峰值的比例事件、其规律跨洲可迁移」</b>——用一个小电网训练的模型，能在另一个规模电网（含中国）零样本预测爬坡，具备通用性。
+                把<b className="text-emerald-300">按各区域峰值标幺化</b>后的爬坡规律，<b className="text-cyan-300">从欧洲电网跨洲推广到中国山东（10.7万MW 特大电网）</b>：DE→SD 标幺 AUC <b className="text-cyan-300">0.71</b>，各区域自训练达 <b className="text-emerald-300">0.94~0.98</b>，均远超随机（0.5）。这说明<b>「爬坡是峰值的比例事件、其规律跨洲可迁移」</b>——用一个小电网训练的模型，能在另一个规模电网（含中国）零样本预测爬坡，具备通用性。
               </p>
             </div>
 
@@ -332,7 +332,7 @@ export default function RampForecast() {
 
           {/* 底部口径 */}
           <p className="rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%（真实事件）；概率为 LightGBM 对这些点「未来 1h 是否发生爬坡」的估计（44 维多因素：负荷滞后/滚动/波动 + 气象 + 风光出力；DE 训练 → 对 NL / BE / SD 零样本，幅度特征按各区域峰值<b className="text-foreground/80">标幺化</b>）。爬坡<b className="text-foreground/80">分级按 |ΔP| 占峰值幅度</b>：<b className="text-sky-300">一般 ≥3.88%</b> / <b className="text-amber-300">较大 ≥6%</b> / <b className="text-rose-300">重大 ≥8%</b>——概率答「会不会」，分级答「有多大」。展示时段 2025-06-01~06-30（欧，30 天）与 2025-06-05~06-30（山东，26 天），15min · 96 点/天。来源：Fraunhofer Energy-Charts 2024-2025 欧洲负荷序列 + 山东省实际负荷 + Open-Meteo 历史气象。
+            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%（真实事件）；概率为 LightGBM 对这些点「未来 1h 是否发生爬坡」的估计（44 维多因素：负荷滞后/滚动/波动 + 气象 + 风光出力；DE 训练 → 对 NL / BE / SD 零样本，幅度特征按各区域峰值<b className="text-foreground/80">标幺化</b>）。爬坡<b className="text-foreground/80">分级按 |ΔP| 占峰值幅度</b>：<b className="text-sky-300">一般 ≥3.88%</b> / <b className="text-amber-300">较大 ≥6%</b> / <b className="text-rose-300">重大 ≥8%</b>——概率答「会不会」，分级答「有多大」。展示时段 2025-06-01~06-30（欧，30 天）与 2025-06-05~06-30（山东，26 天），15min · 96 点/天。来源：Fraunhofer Energy-Charts 2024-2025 欧洲负荷序列 + 山东省实际负荷 + Open-Meteo 历史气象。前置<b className="text-foreground/80">单点毛刺清洗</b>：剔除孤立的"冲下去立刻弹回"采集毛刺（与邻域中值差 &gt;8·MAD 且 &gt;5% 局部量级的极值点），避免单点异常污染爬坡标签与曲线。
           </p>
         </CollapsibleContent>
       </Collapsible>
