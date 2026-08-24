@@ -164,6 +164,7 @@ export interface RampDay {
   label: number[] // 真实爬坡事件标签 0/1
   dP_mw: (number | null)[] // 未来 1h 负荷变化量（MW）
   load: (number | null)[] // 实际负荷（MW）
+  severity?: number[] // 爬坡分级 0-3：0=无需；1=一般(≥3.88%峰值)；2=较大(≥6%)；3=重大(≥8%)
 }
 
 export interface RampSeriesMeta {
@@ -175,6 +176,8 @@ export interface RampSeriesMeta {
   n_points: number
   feature_note?: string
   load_field?: string
+  peak_mw?: number
+  grade_thresholds_mw?: number[] // 分级阈值[3.88%,6%,8%]对应的 MW
 }
 
 export interface RampSeriesFile {

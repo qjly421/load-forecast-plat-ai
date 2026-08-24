@@ -32,6 +32,10 @@ const axisLine = { stroke: 'hsl(217 33% 18%)' }
 
 export type RampRegion = 'nl' | 'be' | 'sd'
 
+// 爬坡分级色：0=无 / 1=一般 / 2=较大 / 3=重大
+const SEV_COLOR = ['hsl(215 20% 78%)', '#38bdf8', '#f59e0b', '#fb7185']
+const SEV_NAME = ['无需', '一般', '较大', '重大']
+
 const REGION_LABEL: Record<RampRegion, { name: string; peak: string; note: string }> = {
   nl: { name: '荷兰 NL', peak: '≈19.6 GW', note: 'DE 训练模型 · 零样本预警' },
   be: { name: '比利时 BE', peak: '≈13.2 GW', note: 'DE 训练模型 · 零样本预警（含新能源）' },
@@ -84,6 +88,7 @@ export default function RampForecast() {
       dp: d.dP_mw?.[i],
       prob: d.prob?.[i],
       event: d.label?.[i] === 1,
+      sev: d.severity?.[i] ?? 0,
       up: d.label?.[i] === 1 && (d.dP_mw?.[i] ?? 0) > 0 ? (d.load?.[i] ?? null) : null,
       down: d.label?.[i] === 1 && (d.dP_mw?.[i] ?? 0) < 0 ? (d.load?.[i] ?? null) : null,
     }))
@@ -112,7 +117,12 @@ export default function RampForecast() {
     const warns = rows.filter((r) => (r.prob ?? 0) >= 0.5)
     const hit = warns.filter((r) => r.event).length
     const maxProb = Math.max(...rows.map((r) => r.prob ?? 0))
-    return { events, warns: warns.length, hit, maxProb }
+    const ev = rows.filter((r) => r.event)
+    const maxSev = ev.length ? Math.max(...ev.map((r) => r.sev)) : 0
+    const sCount = [ev.filter((r) => r.sev === 1).length, ev.filter((r) => r.sev === 2).length, ev.filter((r) => r.sev === 3).length]
+    const maxPoint = ev.find((r) => r.sev === maxSev)
+    const maxDir = maxPoint ? ((maxPoint.dp ?? 0) > 0 ? '上' : '下') : '—'
+    return { events, warns: warns.length, hit, maxProb, maxSev, sCount, maxDir }
   }, [rows])
 
   // 跨区域泛化 AUC 对比
@@ -196,11 +206,12 @@ export default function RampForecast() {
             <span className="text-[10px] text-muted-foreground">{rl.note}</span>
           </div>
 
-          {/* KPI 三卡 */}
+          {/* KPI 四卡 */}
           {kpi && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
               <MiniKpi label="本日峰值预测概率" value={`${(kpi.maxProb * 100).toFixed(0)}%`} icon={<Zap className="h-3 w-3 text-amber-400" />} />
-              <MiniKpi label="真实爬坡事件" value={`${kpi.events}`} unit="个" icon={<AlertTriangle className="h-3 w-3 text-rose-400" />} />
+              <MiniKpi label="最大爬坡等级" value={SEV_NAME[kpi.maxSev]} sub={`${kpi.maxSev ? `${kpi.maxDir}坡 · ${SEV_NAME[kpi.maxSev]}` : '当日无爬坡'}`} icon={<AlertTriangle className={kpi.maxSev === 3 ? 'h-3 w-3 text-rose-400' : kpi.maxSev === 2 ? 'h-3 w-3 text-amber-400' : 'h-3 w-3 text-sky-400'} />} />
+              <MiniKpi label="真实爬坡事件" value={`${kpi.events}`} unit="个" sub={`一般 ${kpi.sCount[0]} · 较大 ${kpi.sCount[1]} · 重大 ${kpi.sCount[2]}`} icon={<AlertTriangle className="h-3 w-3 text-rose-400" />} />
               <MiniKpi label="预警时段命中率" value={`${kpi.warns ? Math.round((kpi.hit / kpi.warns) * 100) : 0}%`} sub={`预警 ${kpi.warns} 段 · 命中 ${kpi.hit}`} icon={<AlertTriangle className="h-3 w-3 text-emerald-400" />} />
             </div>
           )}
@@ -209,9 +220,10 @@ export default function RampForecast() {
           <div className="rounded-xl border border-border/60 bg-card/30 p-3">
             <div className="mb-1 flex items-center justify-between">
               <h4 className="text-[12px] font-semibold">单日爬坡预警时序 · <span className="font-mono text-[11px] text-muted-foreground">{selDate}</span></h4>
-              <div className="flex gap-3 text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-rose-400" />上爬坡</span>
-                <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-sky-400" />下爬坡</span>
+              <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-sky-400" />一般(≥3.9%峰值)</span>
+                <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-amber-400" />较大(≥6%)</span>
+                <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-rose-400" />重大(≥8%)</span>
                 <span className="flex items-center gap-1"><i className="h-0.5 w-3 bg-amber-400/60" />预警窗口(≥0.5)</span>
               </div>
             </div>
@@ -236,8 +248,12 @@ export default function RampForecast() {
                       <Cell key={i} fill={(r.dp ?? 0) > 0 ? 'hsla(187 90% 55% / 0.55)' : 'hsla(45 95% 60% / 0.5)'} />
                     ))}
                   </Bar>
-                  <Scatter yAxisId="l" dataKey="up" name="up" fill={C.rose} shape="triangle" />
-                  <Scatter yAxisId="l" dataKey="down" name="down" fill={C.sky} shape="triangle" />
+                  <Scatter yAxisId="l" dataKey="up" name="up" shape="triangle" isAnimationActive={false}>
+                    {rows.map((r, i) => (r.up != null ? <Cell key={i} fill={SEV_COLOR[r.sev ?? 0] ?? SEV_COLOR[0]} /> : null))}
+                  </Scatter>
+                  <Scatter yAxisId="l" dataKey="down" name="down" shape="triangle" isAnimationActive={false}>
+                    {rows.map((r, i) => (r.down != null ? <Cell key={i} fill={SEV_COLOR[r.sev ?? 0] ?? SEV_COLOR[0]} /> : null))}
+                  </Scatter>
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -301,7 +317,7 @@ export default function RampForecast() {
 
           {/* 底部口径 */}
           <p className="rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%；特征 44 维多因素（负荷滞后/滚动/波动 + 气象 + 风光出力）；模型 LightGBM（DE 训练 → 对 NL / BE / SD 零样本）；展示时段 2025-06-01~06-30（欧，30 天）与 2025-06-05~06-30（山东，26 天），15min · 96 点/天。来源：Fraunhofer Energy-Charts 2024-2025 欧洲负荷序列 + 山东省实际负荷 + Open-Meteo 历史气象。
+            口径：爬坡 = |P(t+1h)−P(t)| ≥ 各区域观测峰值 3.88%（真实事件）；概率为 LightGBM 对这些点「未来 1h 是否发生爬坡」的估计（44 维多因素：负荷滞后/滚动/波动 + 气象 + 风光出力；DE 训练 → 对 NL / BE / SD 零样本，幅度特征按各区域峰值<b className="text-foreground/80">标幺化</b>）。爬坡<b className="text-foreground/80">分级按 |ΔP| 占峰值幅度</b>：<b className="text-sky-300">一般 ≥3.88%</b> / <b className="text-amber-300">较大 ≥6%</b> / <b className="text-rose-300">重大 ≥8%</b>——概率答「会不会」，分级答「有多大」。展示时段 2025-06-01~06-30（欧，30 天）与 2025-06-05~06-30（山东，26 天），15min · 96 点/天。来源：Fraunhofer Energy-Charts 2024-2025 欧洲负荷序列 + 山东省实际负荷 + Open-Meteo 历史气象。
           </p>
         </CollapsibleContent>
       </Collapsible>
@@ -322,7 +338,9 @@ function RampTip({ active, payload, label: _label }: any) {
       <div style={{ color: C.sky }}>实际负荷：{row.load != null ? `${Math.round(row.load).toLocaleString()} MW` : '—'}</div>
       <div style={{ color: C.amber }}>1h 爬坡变化：{direction}</div>
       <div style={{ color: C.cyanSoft }}>预测爬坡概率：{(row.prob * 100).toFixed(1)}%</div>
-      <div style={{ color: row.event ? C.rose : C.axis }}>{row.event ? '✓ 真实爬坡事件' : '（未发生爬坡）'}</div>
+      <div style={{ color: row.event ? (row.sev === 3 ? C.rose : row.sev === 2 ? C.amber : C.sky) : C.axis }}>
+        {row.event ? `✓ 真实爬坡事件 · ${SEV_NAME[row.sev ?? 0]}（|ΔP| ${(row.dp ?? 0) >= 0 ? '+' : ''}${Math.round(row.dp ?? 0).toLocaleString()} MW）` : '（未发生爬坡）'}
+      </div>
     </div>
   )
 }
