@@ -206,6 +206,31 @@ export interface ModelCompareFile {
   down?: Record<string, ModelCompareMetric | Record<string, unknown>>
 }
 
+// ---- 气象-负荷耦合（GEFCom2014-L · 25 站温度 × 指数负荷） ----
+
+export interface WeatherLoadCouplingFile {
+  source: string
+  window: string
+  stats: {
+    pearson: number
+    n: number
+    tempMin: number
+    tempMax: number
+    loadMin: number
+    loadMax: number
+    hot_avgTemp: number | null
+    hot_avgLoad: number | null
+    hot_n: number
+    cold_avgTemp: number | null
+    cold_avgLoad: number | null
+    cold_n: number
+    total_avgLoad: number
+  }
+  scatter: { t: number; load: number }[]
+  segments: { lo: number; hi: number; t: number; load: number; n: number }[]
+  daily: { hour: number; tmean: number; load: number }[]
+}
+
 /** 跨区域泛化（松结构：研究侧指标，前端只取需要的字段） */
 export interface CrossRegionFile {
   methodology?: Record<string, unknown>

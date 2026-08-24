@@ -10,6 +10,7 @@ import type {
   RampSeriesFile,
   ModelCompareFile,
   CrossRegionFile,
+  WeatherLoadCouplingFile,
 } from '@/types/adjust'
 
 const cache: Record<string, unknown> = {}
@@ -43,6 +44,8 @@ export const loadCrossRegion = () =>
   loadJson<CrossRegionFile>('data/cross_region_metrics.json')
 export const loadModelCompare = () =>
   loadJson<ModelCompareFile>('data/model_compare.json')
+export const loadWeatherLoadCoupling = () =>
+  loadJson<WeatherLoadCouplingFile>('data/gefcom_weather_load.json')
 
 // ---- 操作记录持久化（localStorage） ----
 import type { SavedSession } from '@/types/adjust'

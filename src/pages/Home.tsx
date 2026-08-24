@@ -12,7 +12,6 @@ import { loadMeta, loadWeather, loadForecast, loadIntervals, loadInstalledCapaci
 import { mape } from '@/lib/adjust-engine'
 import EnergyMap from '@/sections/home/EnergyMap'
 import TimeseriesFeatures from '@/sections/home/TimeseriesFeatures'
-import RampForecast from '@/sections/home/RampForecast'
 import type { ForecastFile, MetaFile, WeatherFile, InstalledCapacityFile } from '@/types/adjust'
 import { Badge } from '@/components/ui/badge'
 import { InfoTip } from '@/components/ui/info-tip'
@@ -347,9 +346,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-        {/* 负荷爬坡事件概率预警 · 跨电网零样本泛化 */}
-        <RampForecast />
 
         {/* 月气象趋势 */}
         <div className="card-glow rounded-xl p-4">

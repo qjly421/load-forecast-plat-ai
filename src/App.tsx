@@ -1,7 +1,8 @@
 import { Routes, Route, Link, useLocation } from 'react-router'
-import { Zap, LayoutDashboard, SlidersHorizontal } from 'lucide-react'
+import { Zap, LayoutDashboard, SlidersHorizontal, TrendingUp } from 'lucide-react'
 import Home from './pages/Home'
 import Adjust from './pages/Adjust'
+import Ramp from './pages/Ramp'
 import { cn } from '@/lib/utils'
 
 function TopNav() {
@@ -9,6 +10,7 @@ function TopNav() {
   const tabs = [
     { to: '/', label: '预测看板', icon: LayoutDashboard },
     { to: '/adjust', label: '手动调整', icon: SlidersHorizontal },
+    { to: '/ramp', label: '爬坡预警', icon: TrendingUp },
   ]
   return (
     <nav className="sticky top-0 z-[60] border-b border-border/80 bg-background/90 backdrop-blur-md">
@@ -48,6 +50,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/adjust" element={<Adjust />} />
+        <Route path="/ramp" element={<Ramp />} />
       </Routes>
     </>
   )
