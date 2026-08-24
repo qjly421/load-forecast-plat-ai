@@ -4,6 +4,7 @@ import { SlidersHorizontal, Eye, EyeOff, Loader2, ShieldCheck, CalendarDays, Cpu
 import AdjustChart from '@/sections/adjust/AdjustChart'
 import AdjustTools from '@/sections/adjust/AdjustTools'
 import SimilarPanel from '@/sections/adjust/SimilarPanel'
+import EffectPanel from '@/sections/adjust/EffectPanel'
 import WeatherChart from '@/sections/adjust/WeatherChart'
 import OpsLog from '@/sections/adjust/OpsLog'
 import { applyOps, mape, coverage, fmtMw } from '@/lib/adjust-engine'
@@ -334,8 +335,20 @@ export default function Adjust() {
                 onChartClick={onChartClick}
               />
             </div>
-            <SimilarPanel days={simDays} selected={simDay} onSelect={setSimDay} onApply={applySimilar}
-              targetDay={targetDay} targetWeather={targetWx} />
+            <div className="flex flex-col gap-3">
+              <SimilarPanel days={simDays} selected={simDay} onSelect={setSimDay} onApply={applySimilar}
+                targetDay={targetDay} targetWeather={targetWx} />
+              <EffectPanel
+                before={dayFc.center}
+                after={adjusted}
+                actual={dayFc.actual}
+                segments={meta.segments}
+                hasAdj={ops.length > 0 || !!previewOp}
+                targetDay={targetDay}
+                model={model}
+                dayplus={dayplus}
+              />
+            </div>
           </div>
 
           {/* 下区 */}

@@ -36,7 +36,7 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
   const [blend, setBlend] = useState(50)
 
   return (
-    <div className="card-glow flex flex-col rounded-xl p-4 xl:self-start">
+    <div className="card-glow flex flex-col rounded-xl p-4">
       {/* 目标日天气参照（最上方） */}
       {targetDay && targetWeather ? (
         <div className="mb-3 rounded-lg border border-dashed border-violet-400/30 bg-violet-400/5 px-2.5 py-1.5">
