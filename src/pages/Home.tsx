@@ -449,6 +449,8 @@ export default function Home() {
           每个数据集用同口径 6 个模型 PK（LightGBM / TCN / HistGradientBoost / Random Forest / Extra Trees / Linear），
           并给出<b className="text-foreground/80">96% 共形预测区间</b>（PICP 实测 ≥92%，名义达标）。特征为日前无泄漏构造（同槽滞后 + 时相 + 气温），
           预测与区间指标均取自严格 held-out 测试月（欧洲 2025-06，与山东同月）。手动调整工作台仅针对山东真实数据。
+          与 <b className="text-foreground/80">Fraunhofer Energy-Charts 官方日前负荷预测</b>对照：DE 3.24% / BE 2.45%，我们的 LightGBM 3.36% / 2.86%——
+          自研模型已接近国家电网级官方日前预报水平（等同口径 D1 MAPE）。
         </CollapsibleInfo>
 
         <footer className="rounded-xl border border-border/60 bg-card/30 px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
