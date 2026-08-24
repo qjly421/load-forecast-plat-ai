@@ -36,7 +36,7 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
   const [blend, setBlend] = useState(50)
 
   return (
-    <div className="card-glow flex h-full flex-col rounded-xl p-4">
+    <div className="card-glow flex flex-col rounded-xl p-4 xl:self-start">
       {/* 目标日天气参照（最上方） */}
       {targetDay && targetWeather ? (
         <div className="mb-3 rounded-lg border border-dashed border-violet-400/30 bg-violet-400/5 px-2.5 py-1.5">
@@ -68,8 +68,8 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
         <span className="text-[10px] text-muted-foreground">负荷形状 + 气温 + 降水</span>
       </div>
 
-      {/* 相似日列表：可滚动，填满标题与修正框之间，避免 Top10 撑长或留空 */}
-      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+      {/* 相似日列表：固定高度内滚动，10 条不再撑高面板，修正框紧贴下方 */}
+      <div className="min-h-0 max-h-[360px] space-y-1.5 overflow-y-auto pr-1">
         {days.map((d) => {
           const active = selected?.date === d.date
           const ws = d.weather_summary
@@ -125,7 +125,7 @@ export default function SimilarPanel({ days, selected, onSelect, onApply, target
       </div>
 
       {/* 形状迁移 */}
-      <div className="mt-auto pt-3">
+      <div className="pt-3">
         <div className="rounded-lg border border-border bg-secondary/40 p-3">
           <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <Blend className="h-3.5 w-3.5 text-violet-400" />
