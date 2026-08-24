@@ -91,21 +91,32 @@ export default function RampForecast() {
       sev: d.severity?.[i] ?? 0,
       up: d.label?.[i] === 1 && (d.dP_mw?.[i] ?? 0) > 0 ? (d.load?.[i] ?? null) : null,
       down: d.label?.[i] === 1 && (d.dP_mw?.[i] ?? 0) < 0 ? (d.load?.[i] ?? null) : null,
+      // 按严重度拆分(用于三角着色): 只在对应等级的爬坡点给 load 值
+      sev1: d.severity?.[i] === 1 ? (d.load?.[i] ?? null) : null,
+      sev2: d.severity?.[i] === 2 ? (d.load?.[i] ?? null) : null,
+      sev3: d.severity?.[i] === 3 ? (d.load?.[i] ?? null) : null,
     }))
   }, [ramp, date])
 
-  // 预警窗口：连续 prob≥0.5 的时段（ReferenceArea 背景高亮）
+  // 预警窗口：连续 prob≥0.5 的时段（ReferenceArea 背景高亮）。
+  // 相邻段间隔 ≤2 点（30min）会合并，因为概率短暂跌破 0.5 常是同一爬坡块内的抖动，硬拆会拉低「命中率」。
   const warnIntervals = useMemo(() => {
     if (!rows.length) return []
-    const out: { x1: number; x2: number }[] = []
+    const segs: { x1: number; x2: number }[] = []
     let start = -1
     for (let i = 0; i < rows.length; i++) {
       const warn = (rows[i].prob ?? 0) >= 0.5
       if (warn && start < 0) start = i
       if ((!warn || i === rows.length - 1) && start >= 0) {
-        out.push({ x1: start, x2: warn ? i : i - 1 })
+        segs.push({ x1: start, x2: warn ? i : i - 1 })
         start = -1
       }
+    }
+    const out: { x1: number; x2: number }[] = []
+    for (const s of segs) {
+      const last = out[out.length - 1]
+      if (last && s.x1 - last.x2 <= 3) last.x2 = s.x2
+      else out.push({ ...s })
     }
     return out
   }, [rows])
@@ -114,16 +125,22 @@ export default function RampForecast() {
   const kpi = useMemo(() => {
     if (!rows.length) return null
     const events = rows.filter((r) => r.event).length
-    const warns = rows.filter((r) => (r.prob ?? 0) >= 0.5)
-    const hit = warns.filter((r) => r.event).length
+    const warnPts = rows.filter((r) => (r.prob ?? 0) >= 0.5)
+    const hitPts = warnPts.filter((r) => r.event).length
+    const inWarn = (i: number) => warnIntervals.some((w) => i >= w.x1 && i <= w.x2)
+    const covered = rows.filter((r) => r.event && inWarn(r.i)).length
+    const hitSegs = warnIntervals.filter((w) => rows.slice(w.x1, w.x2 + 1).some((r) => r.event)).length
     const maxProb = Math.max(...rows.map((r) => r.prob ?? 0))
     const ev = rows.filter((r) => r.event)
     const maxSev = ev.length ? Math.max(...ev.map((r) => r.sev)) : 0
     const sCount = [ev.filter((r) => r.sev === 1).length, ev.filter((r) => r.sev === 2).length, ev.filter((r) => r.sev === 3).length]
     const maxPoint = ev.find((r) => r.sev === maxSev)
     const maxDir = maxPoint ? ((maxPoint.dp ?? 0) > 0 ? '上' : '下') : '—'
-    return { events, warns: warns.length, hit, maxProb, maxSev, sCount, maxDir }
-  }, [rows])
+    // 事件覆盖（召回）：真实事件点是否落在预警段内；精确率：预警段内事件点占比
+    const coverage = events ? Math.round((covered / events) * 100) : 0
+    const precision = warnPts.length ? Math.round((hitPts / warnPts.length) * 100) : 0
+    return { events, warns: warnIntervals.length, hitSegs, precision, coverage, maxProb, maxSev, sCount, maxDir }
+  }, [rows, warnIntervals])
 
   // 跨区域泛化 AUC 对比
   const rampAuc = useMemo(() => {
@@ -212,7 +229,7 @@ export default function RampForecast() {
               <MiniKpi label="本日峰值预测概率" value={`${(kpi.maxProb * 100).toFixed(0)}%`} icon={<Zap className="h-3 w-3 text-amber-400" />} />
               <MiniKpi label="最大爬坡等级" value={SEV_NAME[kpi.maxSev]} sub={`${kpi.maxSev ? `${kpi.maxDir}坡 · ${SEV_NAME[kpi.maxSev]}` : '当日无爬坡'}`} icon={<AlertTriangle className={kpi.maxSev === 3 ? 'h-3 w-3 text-rose-400' : kpi.maxSev === 2 ? 'h-3 w-3 text-amber-400' : 'h-3 w-3 text-sky-400'} />} />
               <MiniKpi label="真实爬坡事件" value={`${kpi.events}`} unit="个" sub={`一般 ${kpi.sCount[0]} · 较大 ${kpi.sCount[1]} · 重大 ${kpi.sCount[2]}`} icon={<AlertTriangle className="h-3 w-3 text-rose-400" />} />
-              <MiniKpi label="预警时段命中率" value={`${kpi.warns ? Math.round((kpi.hit / kpi.warns) * 100) : 0}%`} sub={`预警 ${kpi.warns} 段 · 命中 ${kpi.hit}`} icon={<AlertTriangle className="h-3 w-3 text-emerald-400" />} />
+              <MiniKpi label="事件覆盖（召回）" value={`${kpi.coverage}%`} sub={`预警 ${kpi.warns} 段 · 命中 ${kpi.hitSegs} · 精确 ${kpi.precision}%`} icon={<AlertTriangle className="h-3 w-3 text-emerald-400" />} />
             </div>
           )}
 
@@ -241,19 +258,17 @@ export default function RampForecast() {
                   <YAxis yAxisId="r" orientation="right" tick={axisTick} tickLine={false} axisLine={false}
                     tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={40} />
                   <Tooltip {...TIP} content={<RampTip />} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v: string) => { const m: Record<string, string> = { load: '实际负荷', dp: '1h 爬坡变化', up: '上爬坡', down: '下爬坡' }; return <span style={{ color: C.axis }}>{m[v] ?? v}</span> }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v: string) => { const m: Record<string, string> = { load: '实际负荷', dp: '1h 爬坡变化', sev1: '一般(≥3.9%峰值)', sev2: '较大(≥6%)', sev3: '重大(≥8%)' }; return <span style={{ color: C.axis }}>{m[v] ?? v}</span> }} />
                   <Area yAxisId="l" dataKey="load" name="load" type="monotone" stroke={C.sky} strokeWidth={1.8} fill={C.sky} fillOpacity={0.12} dot={false} isAnimationActive={false} />
                   <Bar yAxisId="r" dataKey="dp" name="dp" barSize={5} isAnimationActive={false}>
                     {rows.map((r, i) => (
                       <Cell key={i} fill={(r.dp ?? 0) > 0 ? 'hsla(187 90% 55% / 0.55)' : 'hsla(45 95% 60% / 0.5)'} />
                     ))}
                   </Bar>
-                  <Scatter yAxisId="l" dataKey="up" name="up" shape="triangle" isAnimationActive={false}>
-                    {rows.map((r, i) => (r.up != null ? <Cell key={i} fill={SEV_COLOR[r.sev ?? 0] ?? SEV_COLOR[0]} /> : null))}
-                  </Scatter>
-                  <Scatter yAxisId="l" dataKey="down" name="down" shape="triangle" isAnimationActive={false}>
-                    {rows.map((r, i) => (r.down != null ? <Cell key={i} fill={SEV_COLOR[r.sev ?? 0] ?? SEV_COLOR[0]} /> : null))}
-                  </Scatter>
+                  {/* 三角按等级固定着色：recharts Scatter 会忽略逐点 Cell 的 fill，必须拆成三个固定色系列 */}
+                  <Scatter yAxisId="l" dataKey="sev1" name="sev1" shape="triangle" fill={SEV_COLOR[1]} isAnimationActive={false} />
+                  <Scatter yAxisId="l" dataKey="sev2" name="sev2" shape="triangle" fill={SEV_COLOR[2]} isAnimationActive={false} />
+                  <Scatter yAxisId="l" dataKey="sev3" name="sev3" shape="triangle" fill={SEV_COLOR[3]} isAnimationActive={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
