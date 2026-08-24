@@ -8,11 +8,11 @@ import WeatherChart from '@/sections/adjust/WeatherChart'
 import OpsLog from '@/sections/adjust/OpsLog'
 import { applyOps, mape, coverage, fmtMw } from '@/lib/adjust-engine'
 import {
-  loadMeta, loadWeather, loadSimilar, loadForecast, loadIntervals,
+  loadMeta, loadWeather, loadSimilar, loadForecast,
   saveSession, loadSession, exportSession,
 } from '@/lib/data-service'
 import type {
-  AdjustOp, MetaFile, WeatherFile, SimilarFile, ForecastFile, SimilarDay,
+  AdjustOp, MetaFile, WeatherFile, SimilarFile, ForecastFile, SimilarDay, DayForecast,
 } from '@/types/adjust'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -39,7 +39,6 @@ export default function Adjust() {
   const [weather, setWeather] = useState<WeatherFile | null>(null)
   const [similar, setSimilar] = useState<SimilarFile | null>(null)
   const [forecast, setForecast] = useState<ForecastFile | null>(null)
-  const [intervals, setIntervals] = useState<Record<string, Record<string, unknown>[]> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,9 +65,9 @@ export default function Adjust() {
 
   // 初始加载
   useEffect(() => {
-    Promise.all([loadMeta(), loadWeather(), loadSimilar(), loadIntervals()])
-      .then(([m, w, s, iv]) => {
-        setMeta(m); setWeather(w); setSimilar(s); setIntervals(iv)
+    Promise.all([loadMeta(), loadWeather(), loadSimilar()])
+      .then(([m, w, s]) => {
+        setMeta(m); setWeather(w); setSimilar(s)
       })
       .catch((e) => setError(String(e)))
   }, [])
@@ -125,17 +124,22 @@ export default function Adjust() {
     return { mape0, mape1, peak, peakSlot, cov, maxDelta }
   }, [dayFc, adjusted])
 
-  // 区间质量（所选模型、grouped_split_conformal、2025 正式口径）
+  // 区间质量：按所选模型全月 D1 实测（从 forecast 文件计算，PICP 名义 90%）
   const intervalQuality = useMemo(() => {
-    if (!intervals) return null
-    const rows = intervals.interval_summary ?? []
-    const row = rows.find(
-      (r) => r.protocol_group === '2025_formal_no_leakage'
-        && r.model_family === model
-        && r.interval_method === 'grouped_split_conformal',
-    )
-    return row ? { picp: Number(row.picp), mpiw: Number(row.mpiw) } : null
-  }, [intervals, model])
+    if (!forecast) return null
+    const actual: number[] = [], loA: number[] = [], hiA: number[] = []
+    for (const day of Object.values(forecast)) {
+      const d1 = (day as Record<string, DayForecast>)['1']
+      if (!d1) continue
+      actual.push(...d1.actual); loA.push(...d1.lower); hiA.push(...d1.upper)
+    }
+    if (!actual.length) return null
+    let inband = 0
+    for (let i = 0; i < actual.length; i++) if (actual[i] >= loA[i] && actual[i] <= hiA[i]) inband++
+    const picp = inband / actual.length
+    const mpiw = hiA.reduce((s, u, i) => s + (u - loA[i]), 0) / loA.length
+    return { picp, mpiw }
+  }, [forecast])
 
   // ---- 操作 ----
   const addOp = (op: AdjustOp) => {
@@ -204,7 +208,7 @@ export default function Adjust() {
             <SlidersHorizontal className="h-4 w-4 text-primary" />
             <h1 className="text-sm font-semibold">山东负荷预测 · 手动调整工作台</h1>
             <Badge variant="outline" className="border-border bg-secondary/60 text-[10px] text-muted-foreground">
-              2025-06 口径 · D1-D14 · ec三点
+              2025-06 · D1-D14 · 全网负荷口径
             </Badge>
           </div>
 
@@ -218,8 +222,8 @@ export default function Adjust() {
             <ToolbarSelect
               icon={<Cpu className="h-3.5 w-3.5" />}
               label="模型" value={model} onValueChange={setModel}
-              options={[{ value: 'lgb', label: 'LGB' }, { value: 'nn', label: 'NN' }]}
-              width="w-[88px]"
+              options={(meta?.models ?? []).map((m) => ({ value: m.id, label: m.name }))}
+              width="w-[110px]"
             />
             <ToolbarSelect
               icon={<Timer className="h-3.5 w-3.5" />}
@@ -330,8 +334,8 @@ export default function Adjust() {
 
           {/* 系统定位（页脚能力概述） */}
           <footer className="rounded-xl border border-border/60 bg-card/30 px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-            面向电力调度的负荷预测研判工作台：AI 全月预测底稿 · 多模型对比（LGB/NN）· 相似日 / 气象 / 分时段人工修正 ·
-            概率区间 · 操作回放与导出。
+            面向电力调度的负荷预测研判工作台：AI 全月预测底稿 · 多模型对比（LGB / HistGB / RF / ET / Linear）·
+            相似日 / 气象 / 分时段人工修正 · 概率区间 · 操作回放与导出。
           </footer>
         </main>
       )}
