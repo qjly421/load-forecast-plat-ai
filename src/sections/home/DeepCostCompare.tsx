@@ -18,7 +18,6 @@ const COLOR: Record<string, string> = { lgb: 'hsl(45 95% 60%)', tcn: '#22d3ee', 
 const TIP = { contentStyle: { background: C.tooltipBg, border: `1px solid ${C.tooltipBd}`, borderRadius: 8, fontSize: 12 } }
 const axisTick = { fontSize: 10, fill: C.axis }
 const fmt = (n: number) => n.toLocaleString()
-const short = (name: string) => name.split('（')[0]
 
 /**
  * 模型对比 · LightGBM / TCN / Transformer（同为负荷预测，同任务同口径）
