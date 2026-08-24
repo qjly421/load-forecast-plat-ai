@@ -263,6 +263,18 @@ export interface LoadMetricsFile {
   metrics: Record<string, Record<string, LoadMetricRow>>
 }
 
+/** 深度基线对比（负荷预测 TCN vs Transformer）：参数 / 训练耗时 / 各提前期 MAPE/PICP */
+export interface DeepCostModel {
+  id: string
+  name: string
+  n_params: number
+  train_time_s: number
+  horizon: Record<string, { mape: number; picp: number }>
+}
+export interface DeepCostFile {
+  models: DeepCostModel[]
+}
+
 /** 跨区域泛化（松结构：研究侧指标，前端只取需要的字段） */
 export interface CrossRegionFile {
   methodology?: Record<string, unknown>

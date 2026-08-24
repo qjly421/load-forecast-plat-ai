@@ -13,6 +13,9 @@ import {
   loadLoadMetrics, loadForecastFor, loadWeather, loadInstalledCapacity,
 } from '@/lib/data-service'
 import EnergyMap from '@/sections/home/EnergyMap'
+import TimeseriesFeatures from '@/sections/home/TimeseriesFeatures'
+import WeatherLoadCoupling from '@/sections/home/WeatherLoadCoupling'
+import DeepCostCompare from '@/sections/home/DeepCostCompare'
 import type { ForecastFile, WeatherFile, LoadMetricsFile, InstalledCapacityFile } from '@/types/adjust'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -87,6 +90,8 @@ export default function Home() {
   }, [modelLeader])
 
   // 逐日聚合（全月：实际 min/max/mean + 预测 mean）
+  const days = useMemo(() => Object.keys(fc ?? {}).sort(), [fc])
+
   const daily = useMemo(() => {
     if (!fc) return []
     return Object.keys(fc)
@@ -99,13 +104,16 @@ export default function Home() {
         const min = act.length ? Math.round(Math.min(...act)) : 0
         const mean = act.length ? Math.round(act.reduce((s, v) => s + v, 0) / act.length) : 0
         const cenMean = cen.length ? Math.round(cen.reduce((s, v) => s + v, 0) / cen.length) : 0
+        const centerMax = cen.length ? Math.round(Math.max(...cen)) : 0
+        const temp = d1?.atemp?.length
+          ? Math.round((d1.atemp.reduce((s, v) => s + v, 0) / d1.atemp.length) * 10) / 10
+          : 0
+        const tempMax = d1?.atemp?.length ? Math.round(Math.max(...d1.atemp) * 10) / 10 : 0
         return {
           date: d.slice(5),
           fullDate: d,
-          max, min, mean, cenMean,
-          temp: d1?.atemp?.length
-            ? Math.round((d1.atemp.reduce((s, v) => s + v, 0) / d1.atemp.length) * 10) / 10
-            : 0,
+          max, min, mean, cenMean, centerMax,
+          temp, tempMax, prec: 0,
         }
       })
   }, [fc])
@@ -216,7 +224,7 @@ export default function Home() {
               value={`${extremes.hotDay.temp}°C`} sub={extremes.hotDay.fullDate} />
             <Kpi icon={<Target className="h-3.5 w-3.5 text-violet-400" />}
               label={<><span>区间可靠性达标</span><InfoTip title="区间可靠性">{INFO.picp}</InfoTip></>}
-              value={sel.picp >= 90 ? '✓ 达标' : '未达标'} sub={sel.picp >= 90 ? `实测 ${sel.picp.toFixed(1)}% ≥ 90%` : `需优化`} tone={sel.picp >= 90 ? 'normal' : 'warn'} />
+              value={`${sel.picp.toFixed(1)}%`} sub={sel.picp >= 90 ? '达标（≥90%）' : '未达标（<90%）'} tone={sel.picp >= 90 ? 'normal' : 'warn'} />
           </div>
         )}
 
@@ -353,6 +361,11 @@ export default function Home() {
             </table>
           </div>
         </div>
+
+        {/* 数据可视化特征分析：随数据集切换（四数据集皆有）；周期/小时关联性见其内部子卡 */}
+        <TimeseriesFeatures days={days} fcLgb={fc} daily={daily} regionName={dsMeta.name} monthLabel={dsMeta.test_start.slice(0, 7)} isSd={isSd} />
+        <WeatherLoadCoupling />
+        {isSd && <DeepCostCompare />}
 
         {/* 山东专属：气象趋势 + 装机结构 + 地图 */}
         {isSd && weather && (

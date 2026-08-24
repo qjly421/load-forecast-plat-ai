@@ -12,6 +12,7 @@ import type {
   CrossRegionFile,
   WeatherLoadCouplingFile,
   LoadMetricsFile,
+  DeepCostFile,
 } from '@/types/adjust'
 
 const cache: Record<string, unknown> = {}
@@ -34,6 +35,7 @@ export const loadForecast = (model: string) =>
 export const loadForecastFor = (dataset: string, model: string) =>
   loadJson<ForecastFile>(`data/forecast_${dataset}_${model}.json`)
 export const loadLoadMetrics = () => loadJson<LoadMetricsFile>('data/load_metrics.json')
+export const loadDeepCost = () => loadJson<DeepCostFile>('data/deep_cost.json')
 export const loadInstalledCapacity = () =>
   loadJson<InstalledCapacityFile>('data/installed_capacity.json')
 export const loadWindSolarSites = () =>

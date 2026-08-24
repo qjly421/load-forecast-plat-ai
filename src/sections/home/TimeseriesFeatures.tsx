@@ -51,6 +51,11 @@ interface Props {
   days: string[]
   fcLgb: ForecastFile
   daily: DailyRow[]
+  /** 数据集名（如 "山东 / Shandong"）与测试月标签（如 "2025-06"），用于文案口径 */
+  regionName?: string
+  monthLabel?: string
+  /** 山东才有「手动调整」工作台，非山东不提示进手动调整 */
+  isSd?: boolean
 }
 
 /** 滑动窗口标准差（尾部窗口，长度与输入一致） */
@@ -117,8 +122,10 @@ function AnomalyTooltip({ active, payload, label }: any) {
  * 谷峰结构（逐日峰谷差/负荷率/峰值时刻）/ 周期性（日内自相关 + 日内形态）/ 波动性（移动标准差）/ 异常关注时段（突变 + 高温）
  * 全部基于 2025-06 真实负荷与气温数据计算。
  */
-export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
+export default function TimeseriesFeatures({ days, fcLgb, daily, regionName = '', monthLabel = '', isSd = false }: Props) {
   const [open, setOpen] = useState(true)
+  // 异常/综述里提示去向：山东指向「手动调整」，其它数据集指向「爬坡预警」
+  const adjHint = isSd ? '建议在「手动调整」中逐段复核' : '建议在「爬坡预警」中关注'
 
   // ---- 拼接 30 天 2880 点真实负荷序列（96 点/天，15 分钟采样） ----
   const series = useMemo(() => {
@@ -310,7 +317,7 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
       : ''
     const s3 = `波动在 ${volMax.date} 前后偏强（移动标准差 ≈ ${volMax.d} MW，月均 ${volMean} MW）；`
     const s4 = anomalyCount > 0
-      ? `共标记 ${anomalyCount} 个关注时段，建议在「手动调整」中逐段复核。`
+      ? `共标记 ${anomalyCount} 个关注时段，${adjHint}。`
       : '未检出突出关注时段。'
     return `${s1}${s2}${s3}${s4}`
   }, [spectralPeaks, shapePeak, volMax, volMean, anomalyCount])
@@ -328,7 +335,7 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
               <span>负荷时序特征分析</span>
             </h3>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              「谷峰 / 周期性 / 波动性 / 异常」四视图 · 全部基于 2025-06 真实负荷与气温计算
+              「谷峰 / 周期性 / 波动性 / 异常」四视图 · {regionName}{monthLabel ? ` ${monthLabel}` : ''} 真实负荷与气温计算
             </p>
           </div>
           <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
@@ -417,7 +424,7 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
             </SubCard>
 
             {/* 4 · 异常· 关注时段 */}
-            <SubCard title="异常变化 · 关注时段" subtitle="逐日突变幅度 + 高温日 · 建议在手动调整中复核" icon={<AlertTriangle className="h-3.5 w-3.5 text-amber-400" />}
+            <SubCard title="异常变化 · 关注时段" subtitle="逐日突变幅度 + 高温日 · 复核改善" icon={<AlertTriangle className="h-3.5 w-3.5 text-amber-400" />}
               info={<InfoTip title="异常关注判定规则">突变关注 = 某日日均负荷较前一日跳变超过历史均值+1σ；高温关注 = 日最高温位居全月前 3 高，推升制冷负荷。</InfoTip>}>
               <div style={{ height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -440,7 +447,7 @@ export default function TimeseriesFeatures({ days, fcLgb, daily }: Props) {
               </div>
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                 标注 {anomalyCount} 个关注时段（{anomaly.filter((a) => a.jump !== null).length} 个突变点 ·
-                {anomaly.filter((a) => a.hot !== null).length} 个高温日），建议在「手动调整」中逐段复核。
+                {anomaly.filter((a) => a.hot !== null).length} 个高温日），{adjHint}。
               </p>
             </SubCard>
           </div>

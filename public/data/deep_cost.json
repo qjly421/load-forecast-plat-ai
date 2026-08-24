@@ -1,0 +1,52 @@
+{
+  "models": [
+    {
+      "id": "tcn",
+      "name": "TCN（深度·负荷预测）",
+      "n_params": 144160,
+      "train_time_s": 1.53,
+      "horizon": {
+        "1": {
+          "mape": 4.32,
+          "picp": 86.2
+        },
+        "3": {
+          "mape": 5.09,
+          "picp": 87.0
+        },
+        "7": {
+          "mape": 5.09,
+          "picp": 83.1
+        },
+        "14": {
+          "mape": 5.94,
+          "picp": 79.2
+        }
+      }
+    },
+    {
+      "id": "transformer",
+      "name": "Transformer（深度·负荷预测）",
+      "n_params": 107040,
+      "train_time_s": 1.4,
+      "horizon": {
+        "1": {
+          "mape": 8.52,
+          "picp": 63.6
+        },
+        "3": {
+          "mape": 8.91,
+          "picp": 62.8
+        },
+        "7": {
+          "mape": 10.68,
+          "picp": 50.9
+        },
+        "14": {
+          "mape": 9.57,
+          "picp": 61.9
+        }
+      }
+    }
+  ]
+}
