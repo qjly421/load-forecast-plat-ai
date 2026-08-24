@@ -18,7 +18,7 @@ function TopNav() {
   const [open, setOpen] = useState(false)
   const tabs = [
     { to: '/', label: '预测看板', icon: LayoutDashboard },
-    { to: '/adjust', label: '手动调整', icon: SlidersHorizontal },
+    { to: '/adjust', label: '人机协同预测修正', icon: SlidersHorizontal },
     { to: '/ramp', label: '爬坡预警', icon: TrendingUp },
   ]
   return (

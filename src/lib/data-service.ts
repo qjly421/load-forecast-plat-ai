@@ -108,7 +108,7 @@ export function exportSession(
   actual: number[],
 ) {
   const payload = {
-    出口说明: '山东负荷预测手动调整结果',
+    出口说明: '山东负荷预测人机协同修正结果',
     目标日: session.targetDay,
     模型: session.model,
     提前期: `D${session.dayplus}`,

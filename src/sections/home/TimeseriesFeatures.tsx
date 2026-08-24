@@ -126,7 +126,7 @@ function AnomalyTooltip({ active, payload, label }: any) {
 export default function TimeseriesFeatures({ days, fcLgb, daily, regionName = '', monthLabel = '', isSd = false }: Props) {
   const [open, setOpen] = useState(true)
   // 异常/综述里提示去向：山东指向「手动调整」，其它数据集指向「爬坡预警」
-  const adjHint = isSd ? '建议在「手动调整」中逐段复核' : '建议在「爬坡预警」中关注'
+  const adjHint = isSd ? '建议在「人机协同修正」中逐段复核' : '建议在「爬坡预警」中关注'
 
   // ---- 拼接 30 天 2880 点真实负荷序列（96 点/天，15 分钟采样） ----
   const series = useMemo(() => {
@@ -419,7 +419,7 @@ export default function TimeseriesFeatures({ days, fcLgb, daily, regionName = ''
               </div>
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                 {volMax
-                  ? `1 天窗口移动标准差峰值出现在 ${volMax.date}（≈ ${volMax.d} MW），为月均值（${volMean} MW）的 ${volRatio} 倍，波动偏强时段可在手动调整中复核。`
+                  ? `1 天窗口移动标准差峰值出现在 ${volMax.date}（≈ ${volMax.d} MW），为月均值（${volMean} MW）的 ${volRatio} 倍，波动偏强时段可在人机协同修正中复核。`
                   : '月份内波动整体平稳。'}
               </p>
             </SubCard>

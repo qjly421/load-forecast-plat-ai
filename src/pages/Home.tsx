@@ -183,7 +183,7 @@ export default function Home() {
                 onClick={() => navigate('/adjust')}
                 className="flex items-center gap-1 rounded-md bg-primary/15 px-2.5 py-1 font-medium text-primary transition-colors hover:bg-primary/25"
               >
-                进入手动调整 <ArrowRight className="h-3 w-3" />
+                进入人机协同预测修正 <ArrowRight className="h-3 w-3" />
               </button>
             )}
           </div>
@@ -283,7 +283,7 @@ export default function Home() {
             <div>
               <h2 className="text-sm font-semibold">{dsMeta.test_start.slice(0, 7)} 逐日负荷运行域 · {dsMeta.name}</h2>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                色带：当日实际负荷最小~最大 · 白线：日均负荷 · 蓝线：预测日均 · 点击某日进入手动调整（仅山东）
+                色带：当日实际负荷最小~最大 · 白线：日均负荷 · 蓝线：预测日均 · 点击某日进入人机协同预测修正（仅山东）
               </p>
             </div>
           </div>
@@ -503,7 +503,7 @@ export default function Home() {
           负荷预测主线：在<b className="text-foreground/80">山东（全网 MW，2025-06）/ 德国 / 比利时 / 荷兰（Fraunhofer Energy-Charts 全网实际负荷，2024-2025）</b>四个真实序列（统一 15min 口径）上做<b className="text-foreground/80">日前(D1)预测</b>，
           每个数据集用同口径 6 个模型 PK（LightGBM / TCN / HistGradientBoost / Random Forest / Extra Trees / Linear），
           并给出<b className="text-foreground/80">96% 共形预测区间</b>（PICP 实测 ≥92%，名义达标）。特征为日前无泄漏构造（同槽滞后 + 时相 + 气温），
-          预测与区间指标均取自严格 held-out 测试月（欧洲 2025-06，与山东同月）。手动调整工作台仅针对山东真实数据。
+          预测与区间指标均取自严格 held-out 测试月（欧洲 2025-06，与山东同月）。人机协同预测修正工作台仅针对山东真实数据。
           与 <b className="text-foreground/80">Fraunhofer Energy-Charts 官方日前负荷预测</b>对照：DE 3.24% / BE 2.45%，我们的 LightGBM 3.36% / 2.86%——
           自研模型已接近国家电网级官方日前预报水平（等同口径 D1 MAPE）。
         </CollapsibleInfo>

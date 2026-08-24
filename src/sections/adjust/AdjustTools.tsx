@@ -108,7 +108,7 @@ export default function AdjustTools({
 
   return (
     <div className="card-glow flex h-full flex-col rounded-xl p-4">
-      <h3 className="mb-3 text-sm font-semibold">手动调整工具</h3>
+      <h3 className="mb-3 text-sm font-semibold">人机协同修正工具</h3>
 
       {/* 整日平移 */}
       <ToolBlock icon={<MoveVertical className="h-3.5 w-3.5 text-cyan-400" />} title="整日平移"
