@@ -268,6 +268,8 @@ export interface DeepCostModel {
   id: string
   name: string
   n_params: number
+  /** 规模单位说明：神经网络=参数量，GBDT=规模(树×叶) */
+  size_label?: string
   train_time_s: number
   horizon: Record<string, { mape: number; picp: number }>
 }

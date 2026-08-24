@@ -1,9 +1,35 @@
 {
   "models": [
     {
+      "id": "lgb",
+      "name": "LightGBM（GBDT）",
+      "n_params": 37800,
+      "size_label": "规模(树×叶)",
+      "train_time_s": 1.12,
+      "horizon": {
+        "1": {
+          "mape": 2.75,
+          "picp": 96.8
+        },
+        "3": {
+          "mape": 3.92,
+          "picp": 86.5
+        },
+        "7": {
+          "mape": 5.37,
+          "picp": 84.8
+        },
+        "14": {
+          "mape": 9.35,
+          "picp": 50.9
+        }
+      }
+    },
+    {
       "id": "tcn",
-      "name": "TCN（深度·负荷预测）",
+      "name": "TCN（深度·卷积）",
       "n_params": 144160,
+      "size_label": "参数量",
       "train_time_s": 1.53,
       "horizon": {
         "1": {
@@ -26,8 +52,9 @@
     },
     {
       "id": "transformer",
-      "name": "Transformer（深度·负荷预测）",
+      "name": "Transformer（深度·注意力）",
       "n_params": 107040,
+      "size_label": "参数量",
       "train_time_s": 1.4,
       "horizon": {
         "1": {

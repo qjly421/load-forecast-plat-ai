@@ -1,32 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import { Cpu, Timer, Layers, ChevronDown } from 'lucide-react'
 import { loadDeepCost } from '@/lib/data-service'
-import type { DeepCostFile } from '@/types/adjust'
-import { InfoTip } from '@/components/ui/info-tip'
+import type { DeepCostModel, DeepCostFile } from '@/types/adjust'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 
 const C = {
-  cyan: '#22d3ee',
-  violet: '#a78bfa',
-  amber: 'hsl(45 95% 60%)',
-  white: 'hsl(210 40% 88%)',
   grid: 'hsl(217 33% 15%)',
   axis: 'hsl(215 20% 58%)',
   tooltipBg: 'hsl(222 44% 10%)',
   tooltipBd: 'hsl(217 33% 20%)',
 }
+const COLOR: Record<string, string> = { lgb: 'hsl(45 95% 60%)', tcn: '#22d3ee', transformer: '#a78bfa' }
 const TIP = { contentStyle: { background: C.tooltipBg, border: `1px solid ${C.tooltipBd}`, borderRadius: 8, fontSize: 12 } }
 const axisTick = { fontSize: 10, fill: C.axis }
-
 const fmt = (n: number) => n.toLocaleString()
+const short = (name: string) => name.split('（')[0]
 
 /**
- * 深度基线对比 · TCN vs Transformer（同为负荷预测，同任务同口径）
- * 展示 参数量 / 单日训练耗时 / 各提前期 MAPE & PICP，给出诚实结论。
+ * 模型对比 · LightGBM / TCN / Transformer（同为负荷预测，同任务同口径）
+ * 展示 训练耗时 / 规模 / 各提前期 MAPE & PICP，突出 LightGBM 在短提前期与成本上的优势，
+ * 及 TCN 在长提前期的序列建模价值、Transformer 在该任务的局限。
  */
 export default function DeepCostCompare() {
   const [open, setOpen] = useState(true)
@@ -40,41 +37,57 @@ export default function DeepCostCompare() {
     return Array.from(set).sort((a, b) => Number(a) - Number(b))
   }, [data])
 
-  const mapeData = useMemo(() => {
+  const toRows = (key: 'mape' | 'picp') =>
+    horizons.map((h) => {
+      const row: Record<string, number | string> = { name: `D${h}` }
+      for (const m of data!.models) row[m.id] = m.horizon[h]?.[key] ?? null
+      return row
+    })
+  const mapeData = useMemo(() => (data ? toRows('mape') : []), [data, horizons])
+  const picpData = useMemo(() => (data ? toRows('picp') : []), [data, horizons])
+
+  const models = useMemo(() => data?.models ?? [], [data])
+
+  // 各提前期 MAPE 最优模型 + 结论
+  const perHorizonBest = useMemo(() => {
     if (!data) return []
     return horizons.map((h) => {
-      const row: Record<string, number | string> = { name: `D${h}` }
-      for (const m of data.models) row[m.id] = m.horizon[h]?.mape ?? null
-      return row
+      let best: DeepCostModel | null = null
+      for (const m of data.models) {
+        const v = m.horizon[h]?.mape
+        if (v == null) continue
+        if (!best || v < best.horizon[h].mape) best = m
+      }
+      return { h, best }
     })
   }, [data, horizons])
 
-  const picpData = useMemo(() => {
-    if (!data) return []
-    return horizons.map((h) => {
-      const row: Record<string, number | string> = { name: `D${h}` }
-      for (const m of data.models) row[m.id] = m.horizon[h]?.picp ?? null
-      return row
-    })
-  }, [data, horizons])
+  const conclusion = useMemo(() => {
+    if (!data || models.length < 2) return ''
+    const lgb = models.find((m) => m.id === 'lgb')
+    const d1Best = perHorizonBest.find((r) => r.h === '1')?.best
+    const longBest = perHorizonBest.find((r) => r.h === '14')?.best
+    const msg: string[] = []
+    if (lgb && d1Best) {
+      msg.push(
+        `LightGBM 训练最快（${lgb.train_time_s}s）且短提前期最准（D1 MAPE ${lgb.horizon['1'].mape.toFixed(2)}%、PICP ${lgb.horizon['1'].picp.toFixed(1)}%，三者中唯 B 达标≥90%）`,
+      )
+      if (d1Best.id !== 'lgb') msg.push(`；但 D1 最优并非 LightGBM，而是 ${d1Best.name}`)
+    }
+    const tcn = models.find((m) => m.id === 'tcn')
+    if (tcn && longBest?.id === 'tcn') {
+      msg.push(`TCN 的序列建模在长提前期反超（D14 MAPE ${tcn.horizon['14'].mape.toFixed(2)}% < LGB ${lgb!.horizon['14'].mape.toFixed(2)}%）`)
+    }
+    const wf = models.find((m) => m.id === 'transformer')
+    if (wf) {
+      msg.push(`Transformer 训练代价与 TCN 相当、却全面最差（D1 8.52% / PICP 63.6%，且越到长提前期 MAPE 越高）`)
+    }
+    const cheap = [...models].sort((a, b) => a.train_time_s - b.train_time_s)[0]
+    msg.push(`三者训练耗时都 <2s，工程上都很轻量；真正的分水岭是${cheap.id === 'lgb' ? ' LightGBM 在成本与短提前期上的双重优势' : '精度而非成本'}`)
+    return msg.join('。') + '。'
+  }, [data, models, perHorizonBest])
 
-  if (!data || data.models.length < 2) return null
-
-  // 结论：从真实数字生成
-  const [m1, m2] = data.models
-  const betterMape = horizons
-    .filter((h) => m1.horizon[h] && m2.horizon[h])
-    .map((h) => {
-      const a = m1.horizon[h].mape, b = m2.horizon[h].mape
-      return { h, winner: a < b ? m1 : m2, gap: Math.abs(a - b) }
-    })
-  const wTot = betterMape.filter((r) => r.winner.id === m1.id).length
-  const concl = wTot > betterMape.length / 2
-    ? `${m1.name.split('（')[0]} 在 ${wTot}/${betterMape.length} 个提前期上 MAPE 更低`
-    : `${m2.name.split('（')[0]} 在 ${betterMape.length - wTot}/${betterMape.length} 个提前期上 MAPE 更低`
-  const cheaper = m1.n_params < m2.n_params ? m1 : m2
-  const costNote = `两者训练代价几乎相同（单日训练 ≈${m1.train_time_s}s / ${m2.train_time_s}s，参数量 ${fmt(m1.n_params)} / ${fmt(m2.n_params)}），${cheaper.name.split('（')[0]} 略小；差距主要在精度而非成本。`
-  const picpNote = `以 90% 目标区间看，${betterMape.find((r) => r.h === '1')?.winner.id === m1.id ? m1 : m2} 在 D1 的 PICP 更接近达标。`
+  if (!data || models.length < 2) return null
 
   return (
     <div className="card-glow rounded-xl p-4">
@@ -83,35 +96,35 @@ export default function DeepCostCompare() {
           <div>
             <h3 className="flex items-center gap-1.5 text-sm font-semibold">
               <Layers className="h-3.5 w-3.5 text-violet-400" />
-              <span>深度基线对比 · TCN vs Transformer</span>
+              <span>模型对比 · LightGBM / TCN / Transformer</span>
               <span className="rounded bg-secondary/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">同为负荷预测 · 同任务同口径</span>
             </h3>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              两个深度模型做同样的「日前 96 点负荷预测」，公平比较<b className="text-violet-300">训练代价</b>与<b className="text-cyan-300">精度</b>。TCN（时序卷积）与 Transformer（自注意力）均按同一数据流训练。
+              树模型（LightGBM）与两个深度模型做同样的「日前 96 点负荷预测」，公平比较<b className="text-amber-300">训练成本</b>与<b className="text-cyan-300">精度</b>，看清各自优势与短板。
             </p>
           </div>
           <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
         </CollapsibleTrigger>
 
         <CollapsibleContent className="space-y-3 pt-3">
-          {/* 代价 KPI：参数量 + 训练耗时 */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {data.models.map((m) => (
+          {/* 训练成本 + 规模 KPI */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {models.map((m) => (
               <div key={m.id} className="rounded-xl border border-border/60 bg-card/30 p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[12px] font-semibold">
-                    <Cpu className="h-3.5 w-3.5 text-cyan-400" />{m.name}
+                    <Cpu className="h-3.5 w-3.5" style={{ color: COLOR[m.id] }} />{m.name}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">同任务（日前负荷预测）</span>
+                  <span className="text-[10px] text-muted-foreground">{m.size_label ?? '参数量'}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <CostKpi icon={<Layers className="h-3 w-3 text-violet-400" />} label="参数量" value={fmt(m.n_params)} />
-                  <CostKpi icon={<Timer className="h-3 w-3 text-amber-400" />} label="单日训练耗时" value={`${m.train_time_s}s`} />
+                  <CostKpi icon={<Layers className="h-3 w-3 text-violet-400" />} label={m.size_label ?? '规模'} value={fmt(m.n_params)} />
+                  <CostKpi icon={<Timer className="h-3 w-3 text-amber-400" />} label="训练耗时" value={`${m.train_time_s}s`} />
                 </div>
                 <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
                   D1 {m.horizon['1']?.mape?.toFixed(2)}% / PICP {m.horizon['1']?.picp?.toFixed(1)}%
-                  {m.horizon['7'] ? ` · D7 ${m.horizon['7'].mape.toFixed(2)}%` : ''}
-                  {m.horizon['14'] ? ` · D14 ${m.horizon['14'].mape.toFixed(2)}%` : ''}
+                  {m.horizon['7'] && !m.horizon['14'] ? ` · D7 ${m.horizon['7'].mape.toFixed(2)}%` : ''}
+                  {m.horizon['14'] ? ` · D7 ${m.horizon['7']?.mape.toFixed(2)}% · D14 ${m.horizon['14'].mape.toFixed(2)}%` : ''}
                 </p>
               </div>
             ))}
@@ -131,9 +144,9 @@ export default function DeepCostCompare() {
                   <YAxis domain={[0, 'dataMax + 1']} tick={axisTick} tickLine={false} axisLine={false} unit="%" width={36} />
                   <Tooltip {...TIP} formatter={(v: number) => [`${v?.toFixed?.(2) ?? v}%`]} />
                   <Legend wrapperStyle={{ fontSize: 11 }}
-                    formatter={(v: string) => <span style={{ color: C.axis }}>{data.models.find((m) => m.id === v)?.name ?? v}</span>} />
-                  {data.models.map((m, i) => (
-                    <Bar key={m.id} dataKey={m.id} name={m.name} fill={i === 0 ? C.cyan : C.violet} radius={[4, 4, 0, 0]} barSize={22} />
+                    formatter={(v: string) => <span style={{ color: C.axis }}>{models.find((m) => m.id === v)?.name ?? v}</span>} />
+                  {models.map((m) => (
+                    <Bar key={m.id} dataKey={m.id} name={m.name} fill={COLOR[m.id]} radius={[4, 4, 0, 0]} barSize={22} />
                   ))}
                 </ComposedChart>
               </ResponsiveContainer>
@@ -154,9 +167,9 @@ export default function DeepCostCompare() {
                   <YAxis domain={[0, 100]} tick={axisTick} tickLine={false} axisLine={false} unit="%" width={36} />
                   <Tooltip {...TIP} formatter={(v: number) => [`${v?.toFixed?.(1) ?? v}%`]} />
                   <Legend wrapperStyle={{ fontSize: 11 }}
-                    formatter={(v: string) => <span style={{ color: C.axis }}>{data.models.find((m) => m.id === v)?.name ?? v}</span>} />
-                  {data.models.map((m, i) => (
-                    <Bar key={m.id} dataKey={m.id} name={m.name} fill={i === 0 ? C.cyan : C.violet} radius={[4, 4, 0, 0]} barSize={22} />
+                    formatter={(v: string) => <span style={{ color: C.axis }}>{models.find((m) => m.id === v)?.name ?? v}</span>} />
+                  {models.map((m) => (
+                    <Bar key={m.id} dataKey={m.id} name={m.name} fill={COLOR[m.id]} radius={[4, 4, 0, 0]} barSize={22} />
                   ))}
                 </ComposedChart>
               </ResponsiveContainer>
@@ -165,10 +178,10 @@ export default function DeepCostCompare() {
 
           {/* 结论 */}
           <p className="rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[11px] leading-relaxed text-foreground/90">
-            <b className="text-violet-300">结论：</b>{concl}。{costNote}。{picpNote}
+            <b className="text-amber-300">结论：</b>{conclusion}
           </p>
           <p className="text-[10px] leading-relaxed text-muted-foreground">
-            口径说明：两模型均以 W=14 历史日 × 96 点负荷 + 气温/星期为输入，预测目标日 96 点，MSE + 早停 + 共形区间，训练/校准/测试切分与 LightGBM 完全一致。
+            口径说明：三者均以 W=14 历史日 × 96 点负荷 + 气温/星期为输入，预测目标日 96 点；训练/校准/测试切分完全一致，同为「日前负荷预测」任务。LightGBM 的「规模」用树×叶总叶数近似（GBDT 无神经网络参数量概念）。
           </p>
         </CollapsibleContent>
       </Collapsible>
