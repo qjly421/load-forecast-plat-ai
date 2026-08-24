@@ -14,7 +14,6 @@ import {
 } from '@/lib/data-service'
 import EnergyMap from '@/sections/home/EnergyMap'
 import TimeseriesFeatures from '@/sections/home/TimeseriesFeatures'
-import WeatherLoadCoupling from '@/sections/home/WeatherLoadCoupling'
 import DeepCostCompare from '@/sections/home/DeepCostCompare'
 import type { ForecastFile, WeatherFile, LoadMetricsFile, InstalledCapacityFile } from '@/types/adjust'
 import { cn } from '@/lib/utils'
@@ -364,7 +363,6 @@ export default function Home() {
 
         {/* 数据可视化特征分析：随数据集切换（四数据集皆有）；周期/小时关联性见其内部子卡 */}
         <TimeseriesFeatures days={days} fcLgb={fc} daily={daily} regionName={dsMeta.name} monthLabel={dsMeta.test_start.slice(0, 7)} isSd={isSd} />
-        <WeatherLoadCoupling />
         {isSd && <DeepCostCompare />}
 
         {/* 山东专属：气象趋势 + 装机结构 + 地图 */}

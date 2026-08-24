@@ -20,7 +20,9 @@ const BASE = import.meta.env.BASE_URL ?? '/'
 
 async function loadJson<T>(path: string): Promise<T> {
   if (cache[path]) return cache[path] as T
-  const res = await fetch(`${BASE}${path}`)
+  // no-store：数据 JSON 的 URL 不随 build 变化，若不禁用 HTTP 缓存，浏览器会服务旧版
+  // （如 NaN 数据），页面可能白屏/不更新。这里强制每次拉新，会话内仍用内存 cache 兜底。
+  const res = await fetch(`${BASE}${path}`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`加载失败: ${path} (${res.status})`)
   const data = (await res.json()) as T
   cache[path] = data
