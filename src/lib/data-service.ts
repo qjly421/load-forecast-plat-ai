@@ -38,7 +38,7 @@ export const loadWindSolarSites = () =>
   loadJson<WindSolarSitesFile>('data/wind_solar_sites.json')
 export const loadShandongGeo = () =>
   loadJson<FeatureCollection>('data/shape/shandong_geo.json')
-export const loadRampSeries = (region: 'nl' | 'be') =>
+export const loadRampSeries = (region: 'nl' | 'be' | 'sd') =>
   loadJson<RampSeriesFile>(`data/ramp_series_${region}.json`)
 export const loadCrossRegion = () =>
   loadJson<CrossRegionFile>('data/cross_region_metrics.json')

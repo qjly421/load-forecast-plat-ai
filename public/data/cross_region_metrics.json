@@ -1,9 +1,9 @@
 {
   "methodology": {
-    "data": "OPSD time_series_15min_singleindex.csv, DE/BE/NL 实际负荷",
-    "window": "2018-01-01 ~ 2019-12-31 (15min, 96点/天, 各区域 70080 点无缺失)",
+    "data": "OPSD time_series_15min_singleindex.csv (DE/BE/NL 实际负荷) + 山东全网负荷 shandong_full_merged.csv (全网(MW), Beijing local)",
+    "window": "欧: 2018-01-01~2019-12-31 (各70080点); 山东SD: 2025-01-01~2026-07-15 (15min, 52872有效点, ~554天)",
     "ramp_definition": "|P(t+1h)-P(t)| >= threshold, 窗口1h",
-    "threshold_note": "相对阈值 = 3.88% 各区域观测峰值(与DE原3000MW一致); DE=3000MW, BE=534MW, NL=735MW; 使爬坡稀有度跨区域可比",
+    "threshold_note": "相对阈值 = 3.88% 各区域观测峰值(与DE原3000MW一致); DE=3000MW, BE=534MW, NL=735MW, SD=5033MW; 使爬坡稀有度跨区域可比 (但见 caveats: SD 实际正类占比仅10.8%)",
     "feature_sets": {
       "CORE_37": "load+时相+负荷滞后/滚动/动量+气象",
       "F48": "CORE+净负荷+风光出力+容量利用率(仅DE)",
@@ -12,8 +12,14 @@
         "NL 光伏出力约21%缺测(55296/70080), 以0填充(夜间/未上报视为0); 净负荷在缺测期被高估",
         "BE 无风电/光伏/容量列, 仅能用 load+time+weather(无净负荷/新能源特征)",
         "气象为单点(DE=Berlin, NL=Amsterdam, BE=Brussels), 未做全网加权",
-        "各区域时间轴统一为本地CET/CEST(DST规则一致)"
-      ]
+        "各区域时间轴统一为本地CET/CEST(DST规则一致)",
+        "山东SD 无气象/温度列, 无新能源/净负荷可用; 仅能用 load+time+幅值 核心28特征 (特征数少于欧区46-48)",
+        "SD「临时光伏」仅6.5%可测(集中在2026/6-7), 缺失过多, 未入模型",
+        "SD 数据含约4处~24h断点与约3个整日缺失(288点), 清洗=仅对<=6h小洞线性插值, 大洞保留NaN经dropna剔除",
+        "SD 在3.88%峰值阈值下正类占比仅10.8% (欧区20-22%): 山东为特大型稳定电网(129.7GW), 相对1h摆动更平缓, 稀有度等同前提不严格成立",
+        "SD 时间轴为北京本地时间(无DST); 跨区迁移假定日内时相可按时钟位迁移"
+      ],
+      "SD_CORE_28": "load+时相(8)+负荷滞后(7)+负荷滚动std/mean(6)+负荷范围/峰谷(4)+负荷动量(2), 共28列; 山东无气象/新能源列, 不可用 RENEW 与气象 → 比 DE(48)/NL(46) 特征更少"
     }
   },
   "per_region": {
@@ -48,6 +54,17 @@
         "train": 48988,
         "val": 10498,
         "test": 10498
+      }
+    },
+    "SD": {
+      "peak_mw": 129681.02,
+      "threshold_mw": 5032.55,
+      "positive_rate": 0.1084,
+      "n_samples": 52872,
+      "split": {
+        "train": 37010,
+        "val": 7931,
+        "test": 7931
       }
     }
   },
@@ -281,6 +298,121 @@
         "n_eval": 10498,
         "eval_positive_rate": 0.23699752333777863
       }
+    },
+    "SELF_SD": {
+      "train_region": "SD",
+      "eval_region": "SD",
+      "n_features": 28,
+      "feature_set": "SD核心集(load+time+幅值, 去气象/新能源)",
+      "metrics": {
+        "auc": 0.9650080826746712,
+        "pr_auc": 0.8309437291202639,
+        "brier": 0.04327364045081205,
+        "f1": {
+          "threshold": 0.4028,
+          "precision": 0.7715,
+          "recall": 0.7056,
+          "f1": 0.7371,
+          "tn": 6855,
+          "fp": 186,
+          "fn": 262,
+          "tp": 628
+        },
+        "n_eval": 7931,
+        "eval_positive_rate": 0.11221787920817047
+      }
+    },
+    "ZS_DE_SD": {
+      "train_region": "DE",
+      "eval_region": "SD",
+      "n_features": 28,
+      "feature_set": "SD核心集(load+time+幅值, 去气象/新能源)",
+      "metrics": {
+        "auc": 0.5802173146370615,
+        "pr_auc": 0.13043556542654705,
+        "brier": 0.2925924738271156,
+        "f1": {
+          "threshold": 0.5336,
+          "precision": 0.1516,
+          "recall": 0.4562,
+          "f1": 0.2276,
+          "tn": 4769,
+          "fp": 2272,
+          "fn": 484,
+          "tp": 406
+        },
+        "n_eval": 7931,
+        "eval_positive_rate": 0.11221787920817047
+      }
+    },
+    "ZS_SD_DE": {
+      "train_region": "SD",
+      "eval_region": "DE",
+      "n_features": 28,
+      "feature_set": "SD核心集(load+time+幅值, 去气象/新能源)",
+      "metrics": {
+        "auc": 0.7168871256187002,
+        "pr_auc": 0.42667047141504677,
+        "brier": 0.21226481062353408,
+        "f1": {
+          "threshold": 0.4028,
+          "precision": 0.506,
+          "recall": 0.1025,
+          "f1": 0.1705,
+          "tn": 7761,
+          "fp": 249,
+          "fn": 2233,
+          "tp": 255
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23699752333777863
+      }
+    },
+    "ZS_NL_SD": {
+      "train_region": "NL",
+      "eval_region": "SD",
+      "n_features": 28,
+      "feature_set": "SD核心集(load+time+幅值, 去气象/新能源)",
+      "metrics": {
+        "auc": 0.5349205057376618,
+        "pr_auc": 0.12378493441862591,
+        "brier": 0.3961147146240617,
+        "f1": {
+          "threshold": 0.5538,
+          "precision": 0.1346,
+          "recall": 0.5764,
+          "f1": 0.2183,
+          "tn": 3744,
+          "fp": 3297,
+          "fn": 377,
+          "tp": 513
+        },
+        "n_eval": 7931,
+        "eval_positive_rate": 0.11221787920817047
+      }
+    },
+    "ZS_SD_NL": {
+      "train_region": "SD",
+      "eval_region": "NL",
+      "n_features": 28,
+      "feature_set": "SD核心集(load+time+幅值, 去气象/新能源)",
+      "metrics": {
+        "auc": 0.7644595911365345,
+        "pr_auc": 0.5305707470750562,
+        "brier": 0.19093741436486922,
+        "f1": {
+          "threshold": 0.4028,
+          "precision": 0.9118,
+          "recall": 0.1496,
+          "f1": 0.2571,
+          "tn": 8044,
+          "fp": 35,
+          "fn": 2057,
+          "tp": 362
+        },
+        "n_eval": 10498,
+        "eval_positive_rate": 0.23042484282720518
+      }
     }
   },
   "experiments_scale_normalized": {
@@ -315,6 +447,46 @@
       "pr_auc": 0.9388,
       "brier": 0.0499,
       "n_feat": 46
+    },
+    "SD_self": {
+      "src": "SD",
+      "dst": "SD",
+      "auc": 0.965,
+      "pr_auc": 0.8309,
+      "brier": 0.0433,
+      "n_feat": 28
+    },
+    "DE_SD": {
+      "src": "DE",
+      "dst": "SD",
+      "auc": 0.8295,
+      "pr_auc": 0.5165,
+      "brier": 0.0797,
+      "n_feat": 28
+    },
+    "SD_DE": {
+      "src": "SD",
+      "dst": "DE",
+      "auc": 0.7276,
+      "pr_auc": 0.469,
+      "brier": 0.1888,
+      "n_feat": 28
+    },
+    "NL_SD": {
+      "src": "NL",
+      "dst": "SD",
+      "auc": 0.7471,
+      "pr_auc": 0.418,
+      "brier": 0.1077,
+      "n_feat": 28
+    },
+    "SD_NL": {
+      "src": "SD",
+      "dst": "NL",
+      "auc": 0.7604,
+      "pr_auc": 0.5508,
+      "brier": 0.1676,
+      "n_feat": 28
     }
   },
   "conclusions": {
@@ -327,6 +499,8 @@
       "BE 仅负荷无新能源, 只能用核心37特征, 且正类占比(15%)低于DE/NL(21-22%), 可比性受限",
       "零样本仍低于自训练(~0.97), 说明存在部分「电网特异」成分, 并非完全无损迁移",
       "NL 光伏约21%缺测以0填充, 对净负荷特征有轻微污染"
-    ]
+    ],
+    "sd_note": "山东SD(中) vs 德/荷/比(欧) 跨洲对照: 标幺化零样本 DE->SD AUC=0.8295, SD->DE AUC=0.7276, NL->SD=0.7471, SD->NL=0.7604; 均显著高于随机0.5, 支持「爬坡=峰值比例事件, 可跨洲迁移」 但弱于欧->欧(0.90-0.93): 山东负荷更平滑(同阈值下爬坡率10.8% vs 欧20-22%), 缺气象/新能源特征,  仅1.5年样本 → 存在强的区域特异成分, 迁移增益受限。 标幺化对 DE->SD 至关重要(原始MW AUC=0.5802 → 标幺 0.8295), 再次验证「绝对尺度失配」机制跨洲成立。",
+    "headline_zero_shot_auc_sd": "DE->SD 零样本: 原始MW 0.5802(弱) → 标幺化 0.8295(强); SD->DE 标幺 0.7276"
   }
 }
