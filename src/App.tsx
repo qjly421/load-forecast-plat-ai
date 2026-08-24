@@ -19,7 +19,7 @@ function TopNav() {
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15 ring-1 ring-primary/40">
             <Zap className="h-3.5 w-3.5 text-primary" />
           </div>
-          <span className="text-[13px] font-semibold tracking-tight">驭电 · 负荷预测与爬坡风险研判平台</span>
+          <span className="text-[13px] font-semibold tracking-tight">驭电智判 · 负荷预测与人机协同风险研判平台</span>
         </div>
         <div className="flex gap-1">
           {tabs.map((t) => (

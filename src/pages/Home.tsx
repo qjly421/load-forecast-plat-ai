@@ -88,9 +88,25 @@ export default function Home() {
     [reg, ds, model],
   )
   const bestModel = useMemo(() => {
-    if (!modelLeader.length) return null
-    return modelLeader.reduce((a, b) => (b.mape < a.mape ? b : a))
+    // 只从真实模型里找最优（不含"官方日前"基线，否则 BE/DE 会被官方占据最优）
+    const real = modelLeader.filter((r) => r.id !== 'official')
+    if (!real.length) return null
+    return real.reduce((a, b) => (b.mape < a.mape ? b : a))
   }, [modelLeader])
+
+  // 预测总体结论（哪个模型好 / 好在哪 / 结果好不好）——依据当前数据集全月同口径实测
+  const conclusion = useMemo(() => {
+    if (!sel || !bestModel) return null
+    const n = reg?.models?.length ?? 6
+    const off = reg?.official?.[ds] ?? null
+    const gap = off != null ? bestModel.mape - off : null
+    const offTxt = off == null
+      ? '（无公开官方基线可对照，四数据集跨区域一致）'
+      : gap! > 0
+        ? `，略高于官方日前 ${off.toFixed(2)}%（差 ${Math.abs(gap!).toFixed(2)}pp，但已接近行业水平）`
+        : `，较官方日前 ${off.toFixed(2)}% 反超 ${Math.abs(gap!).toFixed(2)}pp`
+    return { n, off, offTxt, gap }
+  }, [sel, bestModel, reg, ds])
 
   // 逐日聚合（全月：实际 min/max/mean + 预测 mean）
   const days = useMemo(() => Object.keys(fc ?? {}).sort(), [fc])
@@ -231,6 +247,33 @@ export default function Home() {
             <Kpi icon={<Target className="h-3.5 w-3.5 text-violet-400" />}
               label={<><span>区间可靠性达标</span><InfoTip title="区间可靠性">{INFO.picp}</InfoTip></>}
               value={`${sel.picp.toFixed(1)}%`} sub={sel.picp >= 90 ? '达标（≥90%）' : '未达标（<90%）'} tone={sel.picp >= 90 ? 'normal' : 'warn'} />
+          </div>
+        )}
+
+        {/* 预测总体结论：哪个模型好 / 好在哪 / 结果好不好 */}
+        {sel && bestModel && conclusion && (
+          <div className="card-glow rounded-xl p-4">
+            <div className="mb-2 flex items-center gap-1.5">
+              <Target className="h-3.5 w-3.5 text-cyan-400" />
+              <h2 className="text-xs font-semibold">预测总体结论</h2>
+              <InfoTip title="结论口径">本结论基于 {dsMeta.name} · {dsMeta.test_start.slice(0, 7)} 全月、日前 D1、{conclusion.n} 个模型同口径实测；「官方日前」为公开日前预测基线（如该数据集无则不显示）。数据来源：{label}。</InfoTip>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <Kpi icon={<Target className="h-3.5 w-3.5 text-amber-400" />}
+                label={<><span>最佳模型</span><InfoTip title="最佳模型">该数据集 {conclusion.n} 个同口径模型中 MAPE 最低者（不含官方基线）。</InfoTip></>}
+                value={`${bestModel.name}`} sub={`全月 MAPE ${bestModel.mape.toFixed(2)}%`} />
+              <Kpi icon={<TrendingDown className="h-3.5 w-3.5 text-emerald-400" />}
+                label={<><span>预测精度（最优）</span><InfoTip title="预测精度">最优模型的全月 MAPE，并与公开官方日前基线对照，衡量达到行业水平程度。</InfoTip></>}
+                value={`${bestModel.mape.toFixed(2)}%`}
+                sub={conclusion.off == null ? '无公开官方基线' : `官方日前 ${conclusion.off.toFixed(2)}%`} />
+              <Kpi icon={<ShieldCheck className="h-3.5 w-3.5 text-sky-400" />}
+                label={<><span>区间可靠性</span><InfoTip title="区间可靠性">90% 置信区间实测覆盖率（PICP），越高代表「给出的范围」越可信。</InfoTip></>}
+                value={`${sel.picp.toFixed(1)}%`} sub={`名义 90% · ${sel.picp >= 90 ? '达标' : '未达标'}`} tone={sel.picp >= 90 ? 'normal' : 'warn'} />
+            </div>
+            <p className="mt-2 rounded-lg border border-border/60 bg-card/30 px-3 py-2 text-[12px] leading-relaxed text-muted-foreground">
+              <b className="text-cyan-300">结论：</b>
+              {dsMeta.name} 日前负荷预测在 {conclusion.n} 个同口径模型下，<b className="text-amber-300">{bestModel.name}</b> 最优（MAPE <b className="text-amber-300">{bestModel.mape.toFixed(2)}%</b>）{conclusion.offTxt}；90% 置信区间实测覆盖 <b className="text-emerald-300">{sel.picp.toFixed(1)}%</b>，{sel.picp >= 90 ? '区间可靠' : '区间覆盖低于名义、需关注'}。整体达到与电网日前预报相当的水平，可为调度风险预判提供支撑。
+            </p>
           </div>
         )}
 
