@@ -314,7 +314,11 @@ export default function TimeseriesFeatures({ days, fcLgb, daily, regionName = ''
     const p24 = spectralPeaks.find((p) => Math.abs(p.periodHours - 24) < 1)
     const s1 = `负荷呈${p24 ? `强 24h 日周期（r≈${p24.correlation.toFixed(2)}）` : '周期性'}，`
     const s2 = shapePeak
-      ? `日内负荷峰出现在晚间 ~${Math.round(shapePeak.hour)} 时（均值 ${shapePeak.v.toLocaleString()} MW），`
+      ? (() => {
+          const pk = Math.round(shapePeak.hour)
+          const pd = pk < 6 ? '凌晨' : pk < 11 ? '上午' : pk < 14 ? '中午' : pk < 18 ? '下午' : '晚间'
+          return `日内负荷峰出现在${pd} ~${pk} 时（均值 ${shapePeak.v.toLocaleString()} MW），`
+        })()
       : ''
     const s3 = `波动在 ${volMax.date} 前后偏强（移动标准差 ≈ ${volMax.d} MW，月均 ${volMean} MW）；`
     const s4 = anomalyCount > 0

@@ -192,7 +192,7 @@ export default function RampForecast() {
               <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-400">创新点</Badge>
             </h3>
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-              爬坡 = 未来 1h 内净负荷变化超过阈值（新能源高渗透下电网调度的关键风险）。模型在同一口径下于<b className="text-foreground/80">德 / 荷 / 比利时 / 中国山东的中欧不同规模电网间跨区域迁移</b>——用一个电网训练的模型在另一个电网零样本预警爬坡，按各区域峰值<b className="text-emerald-400">标幺化</b>后跨电网 AUC 0.71~0.95。
+              爬坡 = 未来 1h 内<b className="text-foreground/80">电力负荷</b>变化超过阈值（电网调度需前瞻的关键风险；对新能源高渗透电网尤甚）。模型在同一口径下于<b className="text-foreground/80">德 / 荷 / 比利时 / 中国山东的中欧不同规模电网间跨区域迁移</b>——用一个电网训练的模型在另一个电网零样本预警爬坡，按各区域峰值<b className="text-emerald-400">标幺化</b>后跨电网 AUC 0.71~0.95。
             </p>
           </div>
           <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />

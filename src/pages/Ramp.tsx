@@ -21,7 +21,7 @@ export default function Ramp() {
           </div>
         </div>
         <div className="mx-auto max-w-[1700px] px-6 pb-3 text-[11px] leading-relaxed text-muted-foreground">
-          面向新能源高渗透电网的<b className="text-amber-300">爬坡（1h 内净负荷剧烈变化）风险研判</b>：用概率模型在线预警爬坡事件，兼顾调度可用性与多模型可靠性；并揭示<b className="text-sky-300">气象-负荷耦合</b>这一爬坡风险的重要成因。
+          面向智能电网的<b className="text-amber-300">负荷爬坡风险研判</b>：对未来 1 小时内电力负荷的剧烈变化进行预测与预警，兼顾调度可用性与多模型可靠性；并揭示<b className="text-sky-300">气象-负荷耦合</b>这一爬坡风险的重要成因。
         </div>
       </div>
 

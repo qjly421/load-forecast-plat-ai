@@ -249,6 +249,15 @@ export default function Adjust() {
             <Badge variant="outline" className="border-border bg-secondary/60 text-[10px] text-muted-foreground">
               2025-06 · D1-D14 · 全网负荷口径
             </Badge>
+            <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-[10px] text-amber-300">
+              当前为历史回测演示模式
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] leading-relaxed text-muted-foreground">
+            <InfoTip title="回测模式说明">当前展示的是过去某日的复盘：<b className="text-foreground">实际负荷仅用于事后评估</b>；实际运行时根据<b className="text-foreground">历史负荷、天气预报和原始预测曲线</b>进行人机协同修正，不依赖目标日已发生的真实负荷。</InfoTip>
+            <span className="text-[10px] text-muted-foreground/90">
+              页面为历史回测，实际负荷仅用于事后评估；线上运行时基于历史负荷 + 天气预报 + 预测曲线修正。
+            </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

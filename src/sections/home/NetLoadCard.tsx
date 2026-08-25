@@ -71,7 +71,7 @@ export default function NetLoadCard({ dataset }: { dataset: string }) {
               <span className="rounded bg-secondary/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{dataset.toUpperCase()} · 2025-06 新能源最大日</span>
             </h3>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              新能源出力(光+风)把部分负荷"抵消"后，电网实际要承担的<b className="text-amber-300">净负荷</b>，其日内骤升骤降正是爬坡/消纳压力来源。
+              净负荷 = 负荷 − 光伏 − 风电，用于展示<b className="text-amber-300">风电、光伏出力与电网负荷之间的关系</b>，为理解新能源<b className="text-amber-300">消纳与调峰压力</b>提供辅助参考。本页的爬坡预警与预测模块均基于<b className="text-foreground/80">电网负荷</b>，而非净负荷。
             </p>
           </div>
           <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />

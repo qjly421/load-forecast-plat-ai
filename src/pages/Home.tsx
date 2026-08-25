@@ -403,7 +403,7 @@ export default function Home() {
                   <tr key={r.id} className="border-t border-border/50">
                     <td className="py-1.5 pr-3 flex items-center gap-1">{r.name}{r.id === 'official' && <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 px-1.5 text-[9px] text-amber-300">官方基线</Badge>}</td>
                     <td className="py-1.5 pr-3 text-foreground">{r.mape.toFixed(2)}</td>
-                    <td className="py-1.5 pr-3">{r.id === 'official' ? '—' : Math.round(r.rmse).toLocaleString()}</td>
+                    <td className="py-1.5 pr-3">{r.id === 'official' || !r.rmse ? '—' : Math.round(r.rmse).toLocaleString()}</td>
                     <td className="py-1.5 pr-3">{r.id === 'official' ? '—（无区间）' : r.picp.toFixed(1)}</td>
                     <td className="py-1.5 pr-3">{r.id === 'official' ? '—' : Math.round(r.mpiw).toLocaleString()}</td>
                     <td className="py-1.5">{r.id === 'official' ? '—' : r.peak_mw.toLocaleString()}</td>
