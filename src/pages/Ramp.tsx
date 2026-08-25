@@ -1,4 +1,4 @@
-import { Zap, Rocket, GitCompare, Globe, CloudSun } from 'lucide-react'
+import { Zap, Rocket, GitCompare, Globe, CloudSun, Share2 } from 'lucide-react'
 import RampForecast from '@/sections/home/RampForecast'
 import WeatherLoadCoupling from '@/sections/home/WeatherLoadCoupling'
 
@@ -44,14 +44,14 @@ export default function Ramp() {
           <WeatherLoadCoupling />
         </section>
 
-        {/* 三 · 技术亮点速览 */}
+        {/* 三 · 技术亮点速览（与平台三大创新口径一致） */}
         <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <HighlightCard icon={<Globe className="h-4 w-4 text-emerald-400" />} title="跨电网零样本泛化"
-            desc="负荷按各区域峰值标幺（占比）后，德/荷/比三电网爬坡规律可迁移——用一个电网训练的模型在另一个电网零样本预警，AUC≈0.90。" />
-          <HighlightCard icon={<GitCompare className="h-4 w-4 text-violet-400" />} title="多模型同口径对比"
-            desc="LGB / Transformer 在同一测试集上 PK，AUC / PR-AUC / Brier / F1 全透明，公正呈现 LightGBM 占优，不刻意拔高任一模型。" />
-          <HighlightCard icon={<CloudSun className="h-4 w-4 text-sky-400" />} title="气象-负荷耦合"
-            desc="25 站温度×负荷逐小时对齐，用 GEFCom2014-L 实证气象是负荷最核心驱动因子（本窗口采暖主导 r≈−0.78），为爬坡风险提供气象诱因。" />
+          <HighlightCard icon={<Globe className="h-4 w-4 text-emerald-400" />} title="跨电网零样本迁移预警"
+            desc="以区域负荷峰值为基准标幺化、统一爬坡判定标准后，欧洲训练模型可免重训迁移至其他电网预警；自训练 AUC 0.94~0.98，跨电网零样本迁移 0.71~0.95。" />
+          <HighlightCard icon={<GitCompare className="h-4 w-4 text-violet-400" />} title="多模型协同预测与可靠性评估"
+            desc="LightGBM / TCN / Transformer 等多模型统一口径同台对比，结合 90% 预测区间与官方日前基线，预测可比较、风险可量化、模型选择有依据。" />
+          <HighlightCard icon={<Share2 className="h-4 w-4 text-sky-400" />} title="人机协同预测修正与风险复核"
+            desc="“预测—预警—修正—复核”人机协同闭环：基于历史负荷与气象推荐相似日，支持平移/缩放/分时修正，复核 MAPE、RMSE、峰值误差与爬坡变化，恶化自动提示并一键恢复。" />
         </section>
       </div>
     </main>
